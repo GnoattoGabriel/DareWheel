@@ -3,9 +3,11 @@
 ## Project structure
 
 - **/** — TypeScript project (entry: `src/index.ts`, output: `dist/`)
-- **`src/`** — Source TypeScript files (types, menu, wheel, levels [bancos /bkp], audio [WebAudio]; api e participants virao em sprints futuros)
-- **`scripts/`** — build-bundle.mjs (bundle file://) e auditoria-contraste.mjs
-- **`dist/`** — Compiled JavaScript output (never commit)
+- **`public/`** — Estáticos servidos pela Vercel (`index.html`, `styles/`, `dist/bundle.js` gerado no build)
+- **`src/`** — Source TypeScript files (types, menu, wheel, levels [bancos /bkp], audio [WebAudio], api [cliente do proxy])
+- **`api/`** — Funções serverless Vercel (`pergunta.js` = proxy OpenAI)
+- **`scripts/`** — build-bundle.mjs (bundle file://), dev-local.mjs (servidor dev) e auditoria-contraste.mjs
+- **`dist/`** — Output do tsc (intermediário, never commit)
 - **`.vscode/`** — VS Code configuration
 
 ## Critical setup commands
@@ -15,7 +17,7 @@
 | Install deps | `npm install` |
 | Build (tsc + bundle) | `npm run build` |
 | Typecheck | `npx tsc --noEmit` |
-| Rodar o jogo | Abrir `index.html` no navegador (duplo clique/file:// ou Live Server) — o bundle `dist/bundle.js` e script classico, funciona sem servidor |
+| Rodar o jogo | Abrir `public/index.html` no navegador (duplo clique/file:// ou Live Server) — o bundle `public/dist/bundle.js` e script classico, funciona sem servidor |
 
 ## TypeScript config
 
@@ -54,7 +56,7 @@ This project uses short sprints defined in `AGENTS.md`. Each sprint has:
 ## Workflow
 
 ```bash
-# 1. Build (compila e gera dist/bundle.js)
+# 1. Build (compila e gera public/dist/bundle.js)
 npm run build
 
 # 2. Lint/typecheck
@@ -65,23 +67,22 @@ npx tsc --noEmit
 
 ### Testando a API localmente (sem deploy)
 
-O jogo via `file://` sempre usa o banco /bkp — para exercitar o proxy da IA
-localmente, use o Vercel CLI (serve estaticos + funcoes juntos):
+O jogo via `file://` (abra `public/index.html`) sempre usa o banco /bkp —
+para exercitar o proxy da IA localmente:
 
 ```bash
-# setup (uma vez)
-npm i -g vercel          # ou usar npx vercel direto
-vercel login             # autentica pelo navegador
-vercel link              # vincula a pasta ao projeto DareWheel
-
-# chave local (arquivo .env.local na raiz, ja ignorado pelo git):
-OPENAI_API_KEY=sk-...
-
-# a cada sessao de dev
-npm run dev              # = vercel dev, sobe tudo em http://localhost:3000
+npm run dev:local   # servidor Node proprio em http://localhost:3000
 ```
 
-Abrir `http://localhost:3000` no navegador roda o jogo completo com IA real.
+Serve `public/` + executa as funcoes reais de `api/`, lendo `.env.local`
+(chave `OPENAI_API_KEY=sk-...`, ja ignorado pelo git). Abrir
+`http://localhost:3000` roda o jogo completo com IA real.
+
+> **Nota:** o `vercel dev` oficial pode TRAVAR nas funções `/api/*` no
+> Windows (estáticos servem, requisições à função ficam pendentes sem log)
+> — por isso existe o `dev-local.mjs`. O deploy de produção na Vercel não
+> é afetado.
+
 Smoke test sem navegador:
 
 ```powershell
@@ -90,9 +91,12 @@ Invoke-RestMethod -Uri http://localhost:3000/api/pergunta -Method Post `
   -Body '{"tipo":"verdade","nivel":"moderado","nome":"🔥","ultimas":[]}'
 ```
 
+Erro 429 `insufficient_quota` = conta OpenAI sem créditos (Billing no painel);
+o jogo cai no banco /bkp normalmente.
+
 ### Bundle (file:// compatibility)
 
-- `index.html` carrega `dist/bundle.js` como script classico (nao `<script type="module">`) — ES Modules sao bloqueados via file:// por CORS
+- `public/index.html` carrega `dist/bundle.js` como script classico (nao `<script type="module">`) — ES Modules sao bloqueados via file:// por CORS
 - `scripts/build-bundle.mjs` concatena o output do tsc em ordem topologica de imports e remove `import`/`export`
 - Novos arquivos em `src/` sao detectados automaticamente pelo script (nao precisa atualizar lista manual)
 
@@ -168,6 +172,6 @@ Invoke-RestMethod -Uri http://localhost:3000/api/pergunta -Method Post `
 ## Recent Changes (Ultima sessao)
 
 - Sprint 4 concluido: `api/pergunta.js` (proxy serverless, gpt-5.4-mini, JSON mode) + `src/api.ts` (cliente timeout 8s); os 3 niveis chamam a API; ultimas 5 perguntas vao no prompt (anti-repeticao); tag "📦 banco de perguntas" substitui o sufixo /bkp cru na exibicao
-- Rebrand para DareWheel: titulo/h1/package.json/localStorage keys (`darewheel_config|estado|som`)/AGENTS.md; repo github.com/GnoattoGabriel/DareWheel com `main` (prod) + `dev`; `vercel.json` com buildCommand `npm run build` e outputDirectory `.`
+- Rebrand para DareWheel: titulo/h1/package.json/localStorage keys (`darewheel_config|estado|som`)/AGENTS.md; repo github.com/GnoattoGabriel/DareWheel com `main` (prod) + `dev`; `vercel.json` com buildCommand `npm run build` e estaticos em `public/` (convencao da plataforma)
 - Sprint 3 concluido: `src/levels.ts` com bancos /bkp (6 categorias x 10 perguntas), anti-repeticao via perguntasUsadas, fallback consome o banco
 - Jogadores sao emojis: seletor curado de 32 emojis (limite 8, sem duplicatas), emojis renderizados dentro das fatias, cor fixa por jogador (Participante.cor)
