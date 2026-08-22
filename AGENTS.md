@@ -63,6 +63,33 @@ npx tsc --noEmit
 # 3. Rodar: abrir index.html no navegador (browser-only, sem testes ainda)
 ```
 
+### Testando a API localmente (sem deploy)
+
+O jogo via `file://` sempre usa o banco /bkp — para exercitar o proxy da IA
+localmente, use o Vercel CLI (serve estaticos + funcoes juntos):
+
+```bash
+# setup (uma vez)
+npm i -g vercel          # ou usar npx vercel direto
+vercel login             # autentica pelo navegador
+vercel link              # vincula a pasta ao projeto DareWheel
+
+# chave local (arquivo .env.local na raiz, ja ignorado pelo git):
+OPENAI_API_KEY=sk-...
+
+# a cada sessao de dev
+npm run dev              # = vercel dev, sobe tudo em http://localhost:3000
+```
+
+Abrir `http://localhost:3000` no navegador roda o jogo completo com IA real.
+Smoke test sem navegador:
+
+```powershell
+Invoke-RestMethod -Uri http://localhost:3000/api/pergunta -Method Post `
+  -ContentType "application/json" `
+  -Body '{"tipo":"verdade","nivel":"moderado","nome":"🔥","ultimas":[]}'
+```
+
 ### Bundle (file:// compatibility)
 
 - `index.html` carrega `dist/bundle.js` como script classico (nao `<script type="module">`) — ES Modules sao bloqueados via file:// por CORS

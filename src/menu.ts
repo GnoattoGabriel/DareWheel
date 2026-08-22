@@ -475,7 +475,8 @@ export class Menu {
   }
 
   private inicializarRoleta(participantes: Participante[]): void {
-    // Criar a instância da roleta
+    // Criar a instancia da roleta - nasce PARADA; o primeiro giro parte
+    // do clique do jogador na propria roleta (garante audio e intencionalidade)
     this.wheel = new Wheel(
       'roda',
       'agulha',
@@ -483,9 +484,6 @@ export class Menu {
       participantes,
       true // respeitarReducedMotion
     )
-
-    // Primeira rodada gira automaticamente
-    this.wheel.girar(participantes)
   }
 
   private configAtual: ConfigJogo = {
@@ -511,27 +509,38 @@ export class Menu {
       perguntasUsadas: [],
     }
 
+    // Numero da rodada em exibicao: a contagem so avanca DEPOIS do resultado
+    // (primeira rodada mostra "Rodada 1", nao "Rodada 2")
+    const numeroRodada = parsedEstado.rodadaAtual || 1
+
     parsedEstado.vencedorAtual = boca
     this.wheelVencedor = boca  // Armazenar para usar no reroll
-    parsedEstado.rodadaAtual = (parsedEstado.rodadaAtual || 1) + 1
+    parsedEstado.rodadaAtual = numeroRodada + 1
 
     // Reduzir peso do respondedor sorteado (x0.75, piso 0.2) - demais ganham chance proporcional
     this.wheel?.aplicarVitoria(boca.id)
 
     // Exibir resultado com os dois papeis e indicador de streak
     this.exibirResultadoRoleta(boca, bunda, resultado.streak)
-    this.atualizarContadorRodadas(parsedEstado.rodadaAtual)
+    this.atualizarContadorRodadas(numeroRodada)
 
     // Esconder reroll ate a pergunta aparecer
     this.atualizarBotaoReroll(false)
 
     // Gerar pergunta conforme o modo selecionado (para quem esta na boca)
     if (this.configAtual.modo === ModoJogo.COMPLETO) {
+      // Limpar pergunta anterior antes de apresentar a escolha
+      const perguntaAnterior = document.getElementById('pergunta') as HTMLElement | null
+      if (perguntaAnterior) {
+        perguntaAnterior.style.display = 'none'
+        perguntaAnterior.replaceChildren()
+      }
       // Modo completo: usuario escolhe Verdade ou Desafio na tela
       this.perguntarVerdadeOuDesafio(boca)
     } else {
       const tipo: "verdade" | "consequencia" =
         this.configAtual.modo === ModoJogo.DESAFIO ? "consequencia" : "verdade"
+      this.exibirCarregando()
       try {
         this.ultimoTipo = tipo
         const pergunta = await this.gerarPerguntaAPI(boca.nome, tipo, this.configAtual.nivel)
@@ -553,13 +562,35 @@ export class Menu {
     const texto = document.getElementById('escolha-pergunta') as HTMLElement | null
 
     if (!container || !texto) {
-      console.error("Elementos de escolha de modo não encontrados")
-      void this.resolverEscolha("verdade")
+      // Nunca auto-resolver: sem os elementos, a escolha fica indisponivel
+      console.error("Elementos de escolha de modo não encontrados - escolha indisponível")
+      this.escolhaPendente = null
       return
     }
 
     texto.textContent = `Para ${vencedor.nome}: verdade ou desafio?`
+    this.definirBotoesEscolha(true)
     container.style.display = 'block'
+  }
+
+  private definirBotoesEscolha(habilitados: boolean): void {
+    for (const id of ['btn-escolha-verdade', 'btn-escolha-desafio']) {
+      const btn = document.getElementById(id) as HTMLButtonElement | null
+      if (btn) btn.disabled = !habilitados
+    }
+  }
+
+  /** Estado de espera visivel enquanto a API gera a pergunta */
+  private exibirCarregando(): void {
+    const perguntaElem = document.getElementById('pergunta') as HTMLElement | null
+    if (!perguntaElem) return
+
+    perguntaElem.replaceChildren()
+    const p = document.createElement('p')
+    p.className = 'pergunta-carregando'
+    p.textContent = 'Gerando pergunta…'
+    perguntaElem.appendChild(p)
+    perguntaElem.style.display = 'flex'
   }
 
   private async resolverEscolha(tipo: "verdade" | "consequencia"): Promise<void> {
@@ -567,12 +598,17 @@ export class Menu {
 
     const container = document.getElementById('escolha-modo') as HTMLElement | null
     if (container) container.style.display = 'none'
+    this.definirBotoesEscolha(false)
     this.escolhaPendente = null
 
-    if (!vencedor) return
+    if (!vencedor) {
+      console.error("resolverEscolha chamado sem escolha pendente")
+      return
+    }
 
     const config = this.obterConfig() || this.configAtual
     this.ultimoTipo = tipo
+    this.exibirCarregando()
 
     try {
       const pergunta = await this.gerarPerguntaAPI(vencedor.nome, tipo, config.nivel)
@@ -748,6 +784,7 @@ export class Menu {
     if (!config || !this.wheelVencedor) return
 
     // Gerar nova pergunta usando o mesmo tipo da rodada atual
+    this.exibirCarregando()
     try {
       const pergunta = await this.gerarPerguntaAPI(this.wheelVencedor.nome, this.ultimoTipo, config.nivel)
       this.exibirPergunta(pergunta, config)

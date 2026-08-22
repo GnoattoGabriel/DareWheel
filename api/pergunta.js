@@ -6,6 +6,11 @@
 const MODEL = 'gpt-5.4-mini'
 const MAX_ULTIMAS = 5
 
+// Limite de execucao da funcao na Vercel (segundos) - nao afeta os
+// timeouts internos (abort 15s), so evita que a plataforma mate a
+// funcao durante chamadas longas a OpenAI
+export const maxDuration = 60
+
 const NIVEIS = {
   sfw: 'leve e apropriada para todos os públicos, para quebrar o gelo',
   moderado: 'pessoal e com um toque picante leve, equilibrando intimidade e bom gosto',

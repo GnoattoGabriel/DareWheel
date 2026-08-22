@@ -726,6 +726,25 @@ header p {
   color: var(--texto);
 }
 
+/* Estado de espera enquanto a API gera a pergunta */
+.pergunta-carregando {
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--texto-suave);
+  animation: carregando-pulso 1.2s ease-in-out infinite;
+}
+
+@keyframes carregando-pulso {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pergunta-carregando {
+    animation: none;
+  }
+}
+
 /* Tag de origem - perguntas vindas do banco /bkp */
 .origem-banco {
   display: block;
