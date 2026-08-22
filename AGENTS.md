@@ -40,9 +40,9 @@ This project uses short sprints defined in `AGENTS.md`. Each sprint has:
 |--------|---------|----------------|
 | 0 | 2 days | Setup inicial (já concluído) ✓ |
 | 1 | 5 days | Menu principal + toggles + localStorage ✓ |
-| 2 | 5 days | Roleta mecânica + cálculo de ângulo | Em andamento |
-| 3 | 5 days | Níveis de picancia (SFW/Mod/NSFW) | Por vir |
-| 4 | 5 days | API ChatGPT integration | Por vir |
+| 2 | 5 days | Roleta mecânica + cálculo de ângulo ✓ |
+| 3 | 5 days | Níveis de picancia (SFW/Mod/NSFW) + bancos /bkp ✓ |
+| 4 | 5 days | API ChatGPT via proxy serverless Vercel ✓ |
 | 5 | 5 days | Polishing, mobile, beta test | Por vir |
 
 ### Por sprint:
@@ -116,7 +116,8 @@ npx tsc --noEmit
 - `src/menu.ts` — controle principal de UI e config
 - `src/participants.ts` — gerenciamento de nomes (ainda nao criado, sera criado no sprint 3)
 - `src/wheel.ts` — mecânica da roleta (sprint 2)
-- `src/api.ts` — integracao ChatGPT (sprint 4)
+- `src/api.ts` — cliente do proxy de perguntas (timeout 8s, lanca erro em falha)
+- `api/pergunta.js` — funcao serverless Vercel (proxy para a OpenAI; chave nunca vai ao cliente)
 - `src/levels.ts` — bancos de perguntas por nivele (sprint 3)
 - `src/estado.ts` — gerenciador de estado global (nao criado; estado atual vive em `src/menu.ts` via localStorage)
 
@@ -132,18 +133,14 @@ npx tsc --noEmit
 - **TypeScript errors** — `npx tsc` deve ser verde antes de executar qualquer coisa
 - **Mobile-first** — todas as novas features devem ser testadas em width < 640px
 - **Roleta injusta em 2 jogadores** — com apenas 2 players, cada um tem 180°. O ângulo inicial aleatorio `0-360` garante probabilidade igual.
-- **Custos API** — usar `gpt-3.5-turbo`; nivel NSFW usa banco proprio de perguntas (nao chama API para evitar custos/blocos)
+- **Arquitetura da API** — cliente chama `/api/pergunta` (proxy serverless na Vercel); `OPENAI_API_KEY` vive so nas env vars do painel (Production + Preview; Development via `.env.local` local para `vercel dev`). Modelo: `gpt-5.4-mini`. Resposta sempre em pt-BR, formato JSON. Anti-repeticao: as ultimas 5 perguntas vao no prompt
+- **NSFW via API** — os 3 niveis chamam a API (desde sprint 4); recusa/vazio do modelo cai no banco /bkp automaticamente
+- **Origem da pergunta** — perguntas do banco mostram tag "📦 banco de perguntas"; perguntas da IA nao tem marcacao. Sufixo `/bkp` nunca aparece cru no texto
 - **Confirmacao de idade** — modo NSFW deve mostrar aviso na tela inicial antes de permitir jogar
 
 ## Recent Changes (Ultima sessao)
 
-- Sprint 2 em andamento: roleta mecanica implementada em `src/wheel.ts` (animacao 4s, reduced-motion, calculo de vencedor)
-- Correcoes: modo completo definido como padrao (`ativo` no index.html + fallback em `menu.ts`); config invalida no localStorage eliminada
-- `tsconfig.json` limpo de opcoes descontinuadas do TS 7 (`forceConsistentCasingInFileNames`, `resolveJsonModule` removidas)
-- `package.json` com `"type": "module"` e `main: dist/src/index.js`
-- `.vscode/settings.json`: `typescript.tsdk` removido (incompativel com TS 7 nativo)
-- Auditoria de interface: contraste dos botoes corrigido (>= 4.5:1), labels/aria-pressed/role=status adicionados, prompt de Verdade/Desafio substituido por botoes na tela, foco gerenciado nas trocas de view, estado vazio da lista, input 16px anti-zoom iOS
-- Roleta virou jogo da garrafa: agulha de duas pontas gira no centro (>= 3 voltas + aleatorio), boca = quem responde, bunda = quem pergunta; a propria roleta e o botao de proxima rodada; roleta 400px/300px mobile
-- Tema visual de jogo: fundo noite de festa, cards translucidos, fonte Fredoka, aro de lampadas piscando no giro, separadores brancos entre fatias, wobble da agulha, sons WebAudio discretos (tick/fanfarra, botao mute), contador de rodadas, streak 🔥xN, chips de cor por jogador (cor fixa persistida em Participante.cor)
+- Sprint 4 concluido: `api/pergunta.js` (proxy serverless, gpt-5.4-mini, JSON mode) + `src/api.ts` (cliente timeout 8s); os 3 niveis chamam a API; ultimas 5 perguntas vao no prompt (anti-repeticao); tag "📦 banco de perguntas" substitui o sufixo /bkp cru na exibicao
+- Rebrand para DareWheel: titulo/h1/package.json/localStorage keys (`darewheel_config|estado|som`)/AGENTS.md; repo github.com/GnoattoGabriel/DareWheel com `main` (prod) + `dev`; `vercel.json` com buildCommand `npm run build` e outputDirectory `.`
 - Sprint 3 concluido: `src/levels.ts` com bancos /bkp (6 categorias x 10 perguntas), anti-repeticao via perguntasUsadas, fallback consome o banco
 - Jogadores sao emojis: seletor curado de 32 emojis (limite 8, sem duplicatas), emojis renderizados dentro das fatias, cor fixa por jogador (Participante.cor)

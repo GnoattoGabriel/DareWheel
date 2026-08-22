@@ -726,6 +726,20 @@ header p {
   color: var(--texto);
 }
 
+/* Tag de origem - perguntas vindas do banco /bkp */
+.origem-banco {
+  display: block;
+  width: fit-content;
+  margin: 0.6rem auto 0;
+  padding: 0.2rem 0.7rem;
+  font-size: max(12px, 0.75rem);
+  font-weight: 400;
+  color: var(--texto-suave);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--borda-suave);
+  border-radius: 999px;
+}
+
 /* Mobile menu improvements */
 @media (max-width: 640px) {
   .toggle-group .toggles {
