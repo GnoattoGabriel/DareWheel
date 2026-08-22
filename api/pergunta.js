@@ -11,9 +11,9 @@ const MAX_ULTIMAS = 5
 // reservas antes de desistir e deixar o cliente usar o banco /bkp.
 // O primeiro da lista pode ser sobrescrito via env OPENROUTER_MODEL.
 const MODELOS = [
-  process.env.OPENROUTER_MODEL ?? 'google/gemma-4-31b-it:free',
+  process.env.OPENROUTER_MODEL ?? 'nvidia/nemotron-3-ultra-550b-a55b:free',
+  'google/gemma-4-31b-it:free',
   'openrouter/free',
-  'nvidia/nemotron-3-nano-30b-a3b:free',
 ]
 
 // Limite de execucao da funcao na Vercel (segundos) - nao afeta os
@@ -41,26 +41,47 @@ function json(statusCode, corpo) {
 
 /**
  * Extrai o texto da pergunta do conteudo devolvido pelo modelo.
- * 1) JSON puro; 2) JSON embutido em texto (modelos que vazam raciocinio).
+ * 1) JSON puro; 2) chave com typo; 3) resgate generico de string citada
+ * (modelos que invertem as chaves do JSON ou vazam texto ao redor).
  */
-function extrairPergunta(conteudo) {
+function extrairPergunta(conteudo, tipo) {
+  // 1) JSON direto
   try {
     const direto = JSON.parse(conteudo)?.pergunta
-    if (typeof direto === 'string' && direto.trim()) return direto.trim()
+    if (typeof direto === 'string' && direto.trim()) {
+      return validarPergunta(direto.trim(), tipo)
+    }
   } catch {
-    // nao e JSON puro - tenta extrair objeto embutido
+    // nao e JSON puro - segue para estrategias tolerantes
   }
-  // Tolerante a typos na chave, ex.: "pergunta:" em vez de "pergunta"
+  // 2) Chave com typo, ex.: "pergunta:" em vez de "pergunta"
   const m = conteudo.match(/"pergunta[^"]*"\s*:\s*"((?:[^"\\]|\\.)*)"/)
   if (m) {
     try {
       const embutida = JSON.parse(`"${m[1]}"`)
-      if (typeof embutida === 'string' && embutida.trim()) return embutida.trim()
+      if (typeof embutida === 'string' && embutida.trim()) {
+        return validarPergunta(embutida.trim(), tipo)
+      }
     } catch {
-      // segue para rejeicao
+      // segue para resgate generico
     }
   }
-  return null
+  // 3) Resgate generico: strings citadas longas que parecem pergunta/desafio
+  const candidatas = conteudo.match(/"([^"\\\n]{15,300})"/g) ?? []
+  let melhor = null
+  for (const bruta of candidatas) {
+    try {
+      const texto = JSON.parse(bruta)
+      if (typeof texto !== 'string') continue
+      if (/[[\]{}<>]/.test(texto)) continue
+      if (!/[?!]/.test(texto)) continue
+      if (/^[a-z_]+\s*:/.test(texto.toLowerCase())) continue
+      if (!melhor || texto.length > melhor.length) melhor = texto
+    } catch {
+      // string escapada invalida - ignora
+    }
+  }
+  return melhor ? validarPergunta(melhor, tipo) : null
 }
 
 /** Heuristica contra vazamento de raciocinio/meta-texto do modelo */
@@ -177,7 +198,7 @@ export default async function handler(request) {
 
       const dados = await resposta.json()
       const conteudo = dados.choices?.[0]?.message?.content
-      const bruta = typeof conteudo === 'string' ? extrairPergunta(conteudo) : null
+      const bruta = typeof conteudo === 'string' ? extrairPergunta(conteudo, tipo) : null
       const pergunta = validarPergunta(bruta, tipo)
 
       if (pergunta) {
