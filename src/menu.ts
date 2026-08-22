@@ -1,9 +1,10 @@
 import { ConfigJogo, EstadoJogo, ModoJogo, NivelPicancia, Participante } from "./types.js"
 import { ResultadoGiro, Wheel } from "./wheel.js"
-
-const PALETA = Wheel.PALETA_CORES
 import { BANCOS_PERGUNTAS, TipoPergunta } from "./levels.js"
 import { audio } from "./audio.js"
+import { pedirPergunta } from "./api.js"
+
+const PALETA = Wheel.PALETA_CORES
 
 export class Menu {
   private static readonly EMOJIS_DISPONIVEIS = [
@@ -583,56 +584,16 @@ export class Menu {
   }
 
   private async gerarPerguntaAPI(nome: string, tipo: "verdade" | "consequencia", nivel: NivelPicancia): Promise<string> {
-    // NSFW level uses its own question bank - does not call API
-    if (nivel === NivelPicancia.NSFW) {
-      return this.obterPerguntaFallback(nome, tipo, nivel)
-    }
-
-    const apiKey = localStorage.getItem('OPENAI_API_KEY')
-
-    if (!apiKey) {
-      console.warn("Chave API OpenAI nao configurada. Usando fallback de perguntas.")
-      return this.obterPerguntaFallback(nome, tipo, nivel)
-    }
-
-    const prompt = `Generate a ${tipo} question for ${nome} at ${nivel} difficulty level. Keep it concise and appropriate.`
-
-    try {
-      const abortController = new AbortController()
-      const timeoutId = setTimeout(() => abortController.abort(), 5000)
-
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7,
-          max_tokens: 150
-        }),
-        signal: abortController.signal
-      })
-
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        throw new Error('API request failed')
-      }
-
-      const data = await response.json()
-      const generated = data.choices?.[0]?.message?.content?.trim()
-      if (generated) {
-        return generated
-      }
-      throw new Error('No response from API')
-    } catch (erro) {
-      console.error("Erro ao chamar API OpenAI", erro)
-      // Fallback to question bank on error or timeout
-      return this.obterPerguntaFallback(nome, tipo, nivel)
-    }
+    // Proxy serverless na Vercel - qualquer falha propaga e o chamador
+    // cai no banco /bkp. Perguntas da IA entram no historico anti-repeticao.
+    const pergunta = await pedirPergunta({
+      nome,
+      tipo,
+      nivel,
+      ultimas: [...this.perguntasUsadas],
+    })
+    this.perguntasUsadas.add(pergunta)
+    return pergunta
   }
 
   /**
@@ -698,12 +659,26 @@ export class Menu {
     const areaJogo = document.getElementById('area-jogo') as HTMLElement | null
 
     if (perguntaElem) {
-      // Construir via DOM - texto da API nunca e injetado como HTML
+      // Construir via DOM - texto da API nunca e injetado como HTML.
+      // Perguntas do banco carregam o sufixo /bkp: vira tag visual,
+      // o texto exibido fica limpo. Perguntas da IA nao tem marcacao.
+      const SUFIXO_BANCO = ' /bkp'
+      const doBanco = pergunta.endsWith(SUFIXO_BANCO)
+      const textoLimpo = doBanco ? pergunta.slice(0, -SUFIXO_BANCO.length) : pergunta
+
       perguntaElem.replaceChildren()
       const p = document.createElement('p')
       const strong = document.createElement('strong')
-      strong.textContent = pergunta
+      strong.textContent = textoLimpo
       p.appendChild(strong)
+
+      if (doBanco) {
+        const tag = document.createElement('span')
+        tag.className = 'origem-banco'
+        tag.textContent = '📦 banco de perguntas'
+        p.appendChild(tag)
+      }
+
       perguntaElem.appendChild(p)
       perguntaElem.style.display = 'flex'
     }

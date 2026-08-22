@@ -4,7 +4,7 @@ export type TipoPergunta = "verdade" | "consequencia"
 
 /**
  * Bancos de perguntas de backup (usados quando a API falha, nao ha chave,
- * ou no nivel NSFW por custo/bloqueio). Toda pergunta do banco termina com
+  * ou falha do proxy da IA). Toda pergunta do banco termina com
  * o sufixo "/bkp" para identificar a origem.
  */
 export const BANCOS_PERGUNTAS: Record<NivelPicancia, Record<TipoPergunta, string[]>> = {
