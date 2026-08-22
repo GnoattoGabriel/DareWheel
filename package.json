@@ -1,0 +1,17 @@
+{
+  "name": "darewheel",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "scripts": {
+    "build": "tsc && node scripts/build-bundle.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

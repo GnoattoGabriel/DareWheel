@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DareWheel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+
+<body>
+  <!-- Menu Principal -->
+  <main id="menu-principal">
+    <div class="container">
+      <header>
+        <h1>DareWheel</h1>
+        <p>Escolha as configurações da rodada</p>
+      </header>
+
+      <section class="configuracoes">
+        <!-- Toggles de Modo -->
+        <div class="toggle-group modo">
+          <h2>Modo de Pergunta</h2>
+          <div class="toggles">
+            <button class="modo-toggle" data-modo="verdade" aria-pressed="false">
+              <span>Só Verdade</span>
+            </button>
+            <button class="modo-toggle ativo" data-modo="completo" aria-pressed="true">
+              <span>Verdade ou Desafio</span>
+            </button>
+            <button class="modo-toggle" data-modo="desafio" aria-pressed="false">
+              <span>Só Desafio</span>
+            </button>
+          </div>
+          <p class="aviso-completo">
+            No modo completo você escolherá Verdade ou Desafio após a roleta parar.
+          </p>
+        </div>
+
+        <!-- Toggles de Nível de Picância -->
+        <div class="toggle-group nivel">
+          <h2>Nível de Jogo</h2>
+          <div class="toggles">
+            <button class="nivel-toggle ativo" data-nivel="sfw" aria-pressed="true">
+              <span>SFW (Leve)</span>
+            </button>
+            <button class="nivel-toggle" data-nivel="moderado" aria-pressed="false">
+              <span>Moderado</span>
+            </button>
+            <button class="nivel-toggle" data-nivel="nsfw" aria-pressed="false">
+              <span>NSFW +18</span>
+            </button>
+          </div>
+          <p class="aviso-nsfw">
+            Apenas para maiores de 18 anos. Confirmar idade antes de jogar.
+          </p>
+        </div>
+      </section>
+
+      <!-- Participantes -->
+      <section class="participantes">
+        <h2>Participantes</h2>
+        <div class="participantes-container" id="participantes-lista">
+          <!-- Será populado pelo JavaScript -->
+        </div>
+
+        <div class="emoji-picker" id="emoji-picker">
+          <!-- Grade de emojis gerada pelo JavaScript -->
+        </div>
+        <p class="picker-dica">escolha um emoji para adicionar um jogador</p>
+      </section>
+
+      <!-- Botão Iniciar -->
+      <section class="acao">
+        <button id="btn-iniciar" class="btn-iniciar" disabled>
+          Iniciar Jogo
+        </button>
+      </section>
+    </div>
+  </main>
+
+  <!-- Área do Jogo (inicialmente oculto) -->
+  <div id="area-jogo" style="display:none;">
+    <div class="jogo-topo">
+      <button id="btn-voltar" class="btn-voltar" aria-label="Voltar ao menu">←</button>
+      <p id="contador-rodadas" class="contador-rodadas" role="status">Rodada 1</p>
+      <button id="btn-som" class="btn-som" aria-label="Ativar som" aria-pressed="true">🔊</button>
+    </div>
+    <button id="btn-roleta" class="roleta-wrapper" aria-label="Girar a roleta para a próxima rodada">
+      <span class="aro-luzes" aria-hidden="true"></span>
+      <span id="roda"></span>
+      <span id="agulha" aria-hidden="true"><span class="agulha-corpo"></span></span>
+      <span class="pino-central" aria-hidden="true"></span>
+    </button>
+    <p class="dica-roleta">toque na roleta para a próxima rodada</p>
+    <p id="resultado" class="resultado" role="status"></p>
+    <div id="escolha-modo" class="escolha-modo" style="display:none;">
+      <p id="escolha-pergunta" class="escolha-pergunta"></p>
+      <div class="escolha-botoes">
+        <button id="btn-escolha-verdade" class="btn-escolha btn-escolha-verdade">Verdade</button>
+        <button id="btn-escolha-desafio" class="btn-escolha btn-escolha-desafio">Desafio</button>
+      </div>
+    </div>
+    <div id="pergunta" class="pergunta" role="status"></div>
+    <button id="btn-reroll" class="btn-reroll">Trocar pergunta (3/3)</button>
+  </div>
+
+  <script src="dist/bundle.js"></script>
+</body>
+
+</html>

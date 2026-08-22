@@ -1,0 +1,810 @@
+/* Reset & Base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --fonte-display: "Fredoka", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fundo-1: #1a1033;
+  --fundo-2: #2b1b5e;
+  --superficie: rgba(255, 255, 255, 0.07);
+  --borda-suave: rgba(255, 255, 255, 0.22);
+  --texto: #f0eef8;      /* ~15:1 sobre o fundo */
+  --texto-suave: #cfcbe6; /* ~9:1 sobre o fundo */
+  --acento: #2c7a7b;
+  --acento-claro: #8ee0e2; /* foco visivel no tema escuro */
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(255, 94, 158, 0.16), transparent 60%),
+    radial-gradient(900px 500px at -10% 30%, rgba(94, 129, 255, 0.18), transparent 55%),
+    linear-gradient(160deg, var(--fundo-1), var(--fundo-2));
+  background-attachment: fixed;
+  color: var(--texto);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* Container */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 1rem;
+  }
+}
+
+/* Header */
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+header h1 {
+  font-family: var(--fonte-display);
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.5rem;
+  color: #fff;
+  text-shadow: 0 3px 14px rgba(255, 94, 158, 0.35);
+}
+
+@media (max-width: 640px) {
+  header h1 {
+    font-size: 1.7rem;
+  }
+}
+
+header p {
+  font-size: 0.9rem;
+  color: var(--texto-suave);
+}
+
+/* Cards das secoes do menu */
+.configuracoes .toggle-group,
+.participantes,
+.acao {
+  background: var(--superficie);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(6px);
+}
+
+/* Toggles */
+.toggle-group {
+  margin-bottom: 2rem;
+}
+
+.toggle-group h2,
+.participantes h2 {
+  font-family: var(--fonte-display);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--texto-suave);
+}
+
+.toggles {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.toggles .modo-toggle,
+.toggles .nivel-toggle {
+  padding: 0.6rem 1.1rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--borda-suave);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--texto);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.toggles .modo-toggle.ativo,
+.toggles .nivel-toggle.ativo {
+  background: #2c7a7b;   /* branco sobre teal: 5.03:1 */
+  border-color: #8ee0e2;
+  color: #fff;
+  font-weight: 600;
+}
+
+.toggles .modo-toggle:hover:not(.ativo),
+.toggles .nivel-toggle:hover:not(.ativo) {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* NSFW Aviso */
+.aviso-nsfw {
+  margin-top: 0.5rem;
+  font-size: max(12px, 0.8125rem);
+  color: #ffb4b4;      /* ~7:1 sobre o fundo do aviso */
+  background: rgba(139, 0, 0, 0.35);
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 92, 92, 0.45);
+  display: none;
+}
+
+/* Aviso modo completo - exibido apenas quando o modo completo esta ativo */
+.aviso-completo {
+  margin-top: 0.5rem;
+  font-size: max(12px, 0.875rem);
+  color: var(--texto-suave);
+  display: none;
+}
+
+/* Participantes */
+.participantes-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.lista-vazia {
+  font-size: max(12px, 0.875rem);
+  color: var(--texto-suave);
+  text-align: center;
+  width: 100%;
+}
+
+/* Seletor de emojis (jogadores) */
+.emoji-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.emoji-opcao {
+  width: 44px; /* hit-area minima para toque */
+  height: 44px;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--borda-suave);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease, scale 0.15s ease;
+}
+
+.emoji-opcao:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  scale: 1.08;
+}
+
+.emoji-opcao:active:not(:disabled) {
+  scale: 0.94;
+}
+
+.emoji-opcao:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.picker-dica {
+  margin-top: 0.4rem;
+  font-size: max(12px, 0.875rem);
+  color: var(--texto-suave);
+  text-align: center;
+}
+
+.participante-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.participante-emoji {
+  font-size: 1.3rem;
+}
+
+.remover-participante {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--texto-suave);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.remover-participante:hover {
+  background: rgba(255, 92, 92, 0.25);
+  color: #ffb4b4;
+}
+
+.chip-cor {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 2px rgba(255, 255, 255, 0.6), 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 640px) {
+  .participante-item {
+    font-size: max(12px, 0.85rem);
+    padding: 0.4rem 0.8rem;
+  }
+}
+
+/* Botões */
+.btn-iniciar,
+.btn-reroll {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-family: var(--fonte-display);
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.12s ease, box-shadow 0.2s ease;
+  margin-top: 0.5rem;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.btn-iniciar:active,
+.btn-reroll:active:not(:disabled) {
+  scale: 0.96;
+}
+
+.btn-iniciar {
+  background: linear-gradient(180deg, #35999a, #2c7a7b);
+  color: #fff;
+  width: 100%;
+  max-width: 220px;
+  margin-inline: auto;
+}
+
+.btn-iniciar:disabled {
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.55);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-iniciar:not(:disabled):hover {
+  background: #246061;
+}
+
+/* Reroll Button */
+.btn-reroll {
+  background: linear-gradient(180deg, #389a3c, #2e7d32);
+  color: #fff;
+  width: 100%;
+  max-width: 220px;
+  display: none; /* Hidden by default, shown when reroll available */
+  margin-top: 1rem;
+  margin-inline: auto;
+}
+
+.btn-reroll:hover:not(:disabled) {
+  background: #256328;
+}
+
+.btn-reroll:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .btn-reroll {
+    font-size: 0.85rem;
+    padding: 0.6rem 1.2rem;
+  }
+}
+
+/* Game Area */
+#area-jogo {
+  display: none;
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: var(--superficie);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+/* Topo da area do jogo: voltar + contador + som */
+.jogo-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.contador-rodadas {
+  font-family: var(--fonte-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--texto-suave);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  margin-inline: auto; /* centraliza entre os dois botoes */
+}
+
+.btn-voltar,
+.btn-som {
+  width: 44px;
+  height: 44px;
+  font-size: 1.2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--borda-suave);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.12s ease;
+}
+
+.btn-voltar {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--acento-claro); /* seta destacada no fundo translucido */
+}
+
+.btn-voltar:hover,
+.btn-som:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-voltar:active,
+.btn-som:active {
+  transform: scale(0.94);
+}
+
+@media (max-width: 640px) {
+  #area-jogo {
+    margin-top: 1rem;
+    padding: 1rem;
+  }
+}
+
+/* Roleta (botao de proxima rodada) */
+.roleta-wrapper {
+  position: relative;
+  display: block;
+  /* Cabe sempre: 100vw - padding da area de jogo (2x1rem) - folga do aro (-16px x2) */
+  width: min(400px, calc(100vw - 64px));
+  height: auto;
+  aspect-ratio: 1;
+  margin: 1.5rem auto 0;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.roleta-wrapper:focus-visible {
+  outline: 2px solid #2c7a7b;
+  outline-offset: 4px;
+}
+
+#roda {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 8px solid #14101f;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.55),
+    inset 0 0 14px rgba(0, 0, 0, 0.35),
+    inset 0 2px 6px rgba(255, 255, 255, 0.25);
+  background: conic-gradient(#ccc 0deg 360deg);
+  transition: box-shadow 0.2s ease;
+}
+
+.roleta-wrapper:hover #roda {
+  box-shadow:
+    0 14px 38px rgba(0, 0, 0, 0.6),
+    0 0 24px rgba(142, 224, 226, 0.18),
+    inset 0 0 14px rgba(0, 0, 0, 0.35);
+}
+
+.dica-roleta {
+  display: block;
+  width: fit-content;
+  margin: 1.5rem auto 0; /* espaco para o aro de lampadas (-16px) nao cobrir */
+  padding: 0.45rem 1rem;
+  font-size: max(12px, 0.875rem);
+  font-weight: 500;
+  color: var(--texto);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--borda-suave);
+  border-radius: 999px;
+}
+
+/* Aro de carnaval: lâmpadas que piscam durante o giro */
+.aro-luzes {
+  position: absolute;
+  inset: -16px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: repeating-conic-gradient(#ffe9a8 0deg 4deg, transparent 4deg 22.5deg);
+  -webkit-mask-image: radial-gradient(closest-side, transparent calc(100% - 12px), #000 calc(100% - 11px));
+  mask-image: radial-gradient(closest-side, transparent calc(100% - 12px), #000 calc(100% - 11px));
+  opacity: 0.45;
+  transition: opacity 0.3s ease;
+}
+
+.roleta-wrapper.girando .aro-luzes {
+  opacity: 1;
+  animation: luzes-piscando 0.35s steps(2) infinite;
+}
+
+@keyframes luzes-piscando {
+  0% {
+    filter: brightness(1.6);
+  }
+  50% {
+    filter: brightness(0.7);
+  }
+  100% {
+    filter: brightness(1.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roleta-wrapper.girando .aro-luzes {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Emojis dentro das fatias da roleta */
+.roda-labels {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.roda-labels span {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+
+/* Pulso de embaralhamento: mascara a troca de assentos no inicio do giro */
+@keyframes roleta-pulso {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    scale: 1;
+  }
+  50% {
+    opacity: 0.45;
+    filter: blur(3px);
+    scale: 0.985;
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    scale: 1;
+  }
+}
+
+.roleta-wrapper.embaralhando #roda,
+.roleta-wrapper.embaralhando .roda-labels {
+  animation: roleta-pulso 350ms ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roleta-wrapper.embaralhando #roda,
+  .roleta-wrapper.embaralhando .roda-labels {
+    animation: none;
+  }
+}
+
+/* Agulha estilo garrafa/bussola: gira no centro da roleta parada */
+#agulha {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 86%;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  will-change: transform;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Corpo da agulha: elemento interno para o wobble nao conflitar com a rotacao */
+.agulha-corpo {
+  position: absolute;
+  inset: 0;
+  display: block;
+  filter: drop-shadow(0 3px 5px rgba(0,0,0,0.5));
+}
+
+/* Corpo da agulha: bunda escura arredondada (esquerda) e boca vermelha (direita) */
+.agulha-corpo::before {
+  content: "";
+  position: absolute;
+  inset: 7px 30px;
+  background: linear-gradient(to right, #2c3338 0%, #2c3338 49%, #e53e3e 51%, #e53e3e 100%);
+  border-radius: 13px 4px 4px 13px;
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.35),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.4),
+    0 0 0 1.5px #f5f2ea; /* contorno claro para destacar sobre qualquer fatia */
+}
+
+/* Boca (direita): ponta que aponta quem responde */
+.agulha-corpo::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 13px solid transparent;
+  border-bottom: 13px solid transparent;
+  border-left: 34px solid #e53e3e;
+  filter: drop-shadow(0 0 1.5px #f5f2ea);
+}
+
+/* Wobble ao cruzar fatias na fase lenta do giro */
+.agulha-corpo.wobble {
+  animation: agulha-wobble 110ms ease-in-out;
+}
+
+@keyframes agulha-wobble {
+  0% { rotate: 0deg }
+  40% { rotate: -2.5deg }
+  75% { rotate: 1.8deg }
+  100% { rotate: 0deg }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agulha-corpo.wobble {
+    animation: none;
+  }
+}
+
+/* Pino central: eixo da bussola com gloss */
+.pino-central {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff, #c9d2da 55%, #7d8a96);
+  border: 3px solid #14101f;
+  z-index: 3;
+  pointer-events: none;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.55), inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+}
+
+@media (max-width: 640px) {
+  /* Aro mais fino em telas pequenas */
+  .roleta-wrapper {
+    margin-top: 1rem;
+  }
+
+  #roda {
+    border-width: 6px;
+  }
+
+  .aro-luzes {
+    inset: -12px;
+  }
+
+  #agulha {
+    height: 20px;
+  }
+
+  .agulha-corpo::before {
+    inset: 5px 24px;
+    border-radius: 10px 3px 3px 10px;
+  }
+
+  .agulha-corpo::after {
+    border-top-width: 10px;
+    border-bottom-width: 10px;
+    border-left-width: 26px;
+  }
+
+  .pino-central {
+    width: 16px;
+    height: 16px;
+    border-width: 3px;
+  }
+}
+
+/* Destaque da rodada - fica entre a roleta e a pergunta */
+.resultado {
+  margin: 1rem auto 0;
+  max-width: 480px;
+  padding: 0.85rem 1.25rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  color: #fff;
+  background: linear-gradient(180deg, #2d8182, #2c7a7b); /* >=4.59:1 com branco em todo o card */
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(44, 122, 123, 0.45);
+  display: none;
+}
+
+.resultado.pop-in {
+  animation: resultado-pop 380ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes resultado-pop {
+  0% { scale: 0.75; opacity: 0 }
+  65% { scale: 1.06; opacity: 1 }
+  100% { scale: 1; opacity: 1 }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resultado.pop-in {
+    animation: none;
+  }
+}
+
+.resultado-papel {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+.pergunta {
+  margin-top: 2rem;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .pergunta {
+    min-height: 60px;
+    font-size: 1rem;
+  }
+}
+
+/* Question text */
+.pergunta p {
+  text-align: center;
+  line-height: 1.4;
+  font-size: 1.15rem;
+  color: var(--texto);
+}
+
+/* Mobile menu improvements */
+@media (max-width: 640px) {
+  .toggle-group .toggles {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scrollbar-width: none;
+  }
+
+  .toggle-group .toggles::-webkit-scrollbar {
+    display: none;
+  }
+
+  .toggles .modo-toggle,
+  .toggles .nivel-toggle {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
+
+/* Focus states */
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--acento-claro);
+  outline-offset: 2px;
+}
+
+/* Escolha Verdade ou Desafio (modo completo) */
+.escolha-modo {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.escolha-pergunta {
+  font-family: var(--fonte-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--texto);
+}
+
+.escolha-botoes {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-escolha {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-family: var(--fonte-display);
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.12s ease, box-shadow 0.2s ease;
+  min-width: 130px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.btn-escolha:active {
+  scale: 0.96;
+}
+
+.btn-escolha-verdade {
+  background: #2c7a7b; /* 5.03:1 com branco */
+  color: #fff;
+}
+
+.btn-escolha-verdade:hover {
+  background: #246061;
+}
+
+.btn-escolha-desafio {
+  background: #a35c00; /* 5.14:1 com branco */
+  color: #fff;
+}
+
+.btn-escolha-desafio:hover {
+  background: #824a00;
+}

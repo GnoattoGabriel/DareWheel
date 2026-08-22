@@ -1,0 +1,11 @@
+{
+  "[typescript]": {
+    "editor.defaultLanguage": "typescript",
+    "editor.formatOnSave": true,
+    "editor.rulers": [80, 120]
+  },
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  }
+}
