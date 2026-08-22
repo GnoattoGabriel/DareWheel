@@ -75,7 +75,7 @@ npm run dev:local   # servidor Node proprio em http://localhost:3000
 ```
 
 Serve `public/` + executa as funcoes reais de `api/`, lendo `.env.local`
-(chave `OPENAI_API_KEY=sk-...`, ja ignorado pelo git). Abrir
+(chave `OPENROUTER_API_KEY=sk-or-...`, ja ignorado pelo git). Abrir
 `http://localhost:3000` roda o jogo completo com IA real.
 
 > **Nota:** o `vercel dev` oficial pode TRAVAR nas funções `/api/*` no
@@ -91,7 +91,7 @@ Invoke-RestMethod -Uri http://localhost:3000/api/pergunta -Method Post `
   -Body '{"tipo":"verdade","nivel":"moderado","nome":"🔥","ultimas":[]}'
 ```
 
-Erro 429 `insufficient_quota` = conta OpenAI sem créditos (Billing no painel);
+Erro 429 `insufficient_quota`/rate limit = limites do plano gratis atingidos;
 o jogo cai no banco /bkp normalmente.
 
 ### Bundle (file:// compatibility)
@@ -164,14 +164,15 @@ o jogo cai no banco /bkp normalmente.
 - **TypeScript errors** — `npx tsc` deve ser verde antes de executar qualquer coisa
 - **Mobile-first** — todas as novas features devem ser testadas em width < 640px
 - **Roleta injusta em 2 jogadores** — com apenas 2 players, cada um tem 180°. O ângulo inicial aleatorio `0-360` garante probabilidade igual.
-- **Arquitetura da API** — cliente chama `/api/pergunta` (proxy serverless na Vercel); `OPENAI_API_KEY` vive so nas env vars do painel (Production + Preview; Development via `.env.local` local para `vercel dev`). Modelo: `gpt-5.4-mini`. Resposta sempre em pt-BR, formato JSON. Anti-repeticao: as ultimas 5 perguntas vao no prompt
+- **Arquitetura da API** — cliente chama `/api/pergunta` (proxy serverless na Vercel); `OPENROUTER_API_KEY` vive so nas env vars do painel (Production + Preview; local via `.env.local` para `dev-local.mjs`). Cadeia de modelos: `google/gemma-4-31b-it:free` (primaria, configuravel via env `OPENROUTER_MODEL`) → `openrouter/free` → `nvidia/nemotron-3-nano-30b-a3b:free`; primeira resposta valida ganha. Resposta sempre em pt-BR, formato JSON com extracao tolerante + heuristica anti-vazamento de raciocinio. Anti-repeticao: as ultimas 5 perguntas vao no prompt
+- **Limites OpenRouter** — plano gratis: 20 req/min e 50 req/dia (1.000/dia apos US$ 10 unicos em creditos). Modelos gratuitos rotacionam (conferir `/api/v1/models`); 429/402 e respostas invalidas caem no banco /bkp automaticamente
 - **NSFW via API** — os 3 niveis chamam a API (desde sprint 4); recusa/vazio do modelo cai no banco /bkp automaticamente
 - **Origem da pergunta** — perguntas do banco mostram tag "📦 banco de perguntas"; perguntas da IA nao tem marcacao. Sufixo `/bkp` nunca aparece cru no texto
 - **Confirmacao de idade** — modo NSFW deve mostrar aviso na tela inicial antes de permitir jogar
 
 ## Recent Changes (Ultima sessao)
 
-- Sprint 4 concluido: `api/pergunta.js` (proxy serverless, gpt-5.4-mini, JSON mode) + `src/api.ts` (cliente timeout 8s); os 3 niveis chamam a API; ultimas 5 perguntas vao no prompt (anti-repeticao); tag "📦 banco de perguntas" substitui o sufixo /bkp cru na exibicao
+- Sprint 4 concluido: `api/pergunta.js` (proxy serverless, OpenRouter com cadeia de modelos gratuitos, JSON mode) + `src/api.ts` (cliente timeout 8s); os 3 niveis chamam a API; ultimas 5 perguntas vao no prompt (anti-repeticao); tag "📦 banco de perguntas" substitui o sufixo /bkp cru na exibicao
 - Rebrand para DareWheel: titulo/h1/package.json/localStorage keys (`darewheel_config|estado|som`)/AGENTS.md; repo github.com/GnoattoGabriel/DareWheel com `main` (prod) + `dev`; `vercel.json` com buildCommand `npm run build` e estaticos em `public/` (convencao da plataforma)
 - Sprint 3 concluido: `src/levels.ts` com bancos /bkp (6 categorias x 10 perguntas), anti-repeticao via perguntasUsadas, fallback consome o banco
 - Jogadores sao emojis: seletor curado de 32 emojis (limite 8, sem duplicatas), emojis renderizados dentro das fatias, cor fixa por jogador (Participante.cor)

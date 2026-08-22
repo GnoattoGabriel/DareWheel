@@ -1,10 +1,20 @@
-// Proxy serverless Vercel - a chave OpenAI nunca chega ao cliente.
+// Proxy serverless Vercel - a chave OpenRouter nunca chega ao cliente.
 // POST /api/pergunta
 // Body: { tipo: "verdade"|"consequencia", nivel: "sfw"|"moderado"|"nsfw", nome: string, ultimas: string[] }
 // Resposta: { "pergunta": "..." } | Erro: { "erro": "..." }
 
-const MODEL = 'gpt-5.4-mini'
+const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
 const MAX_ULTIMAS = 5
+
+// Cadeia de modelos: o roteador gratuito as vezes cai em "reasoners"
+// gigantes que estouram o timeout sem produzir conteudo - tentamos os
+// reservas antes de desistir e deixar o cliente usar o banco /bkp.
+// O primeiro da lista pode ser sobrescrito via env OPENROUTER_MODEL.
+const MODELOS = [
+  process.env.OPENROUTER_MODEL ?? 'google/gemma-4-31b-it:free',
+  'openrouter/free',
+  'nvidia/nemotron-3-nano-30b-a3b:free',
+]
 
 // Limite de execucao da funcao na Vercel (segundos) - nao afeta os
 // timeouts internos (abort 15s), so evita que a plataforma mate a
@@ -27,6 +37,59 @@ function json(statusCode, corpo) {
     status: statusCode,
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
   })
+}
+
+/**
+ * Extrai o texto da pergunta do conteudo devolvido pelo modelo.
+ * 1) JSON puro; 2) JSON embutido em texto (modelos que vazam raciocinio).
+ */
+function extrairPergunta(conteudo) {
+  try {
+    const direto = JSON.parse(conteudo)?.pergunta
+    if (typeof direto === 'string' && direto.trim()) return direto.trim()
+  } catch {
+    // nao e JSON puro - tenta extrair objeto embutido
+  }
+  // Tolerante a typos na chave, ex.: "pergunta:" em vez de "pergunta"
+  const m = conteudo.match(/"pergunta[^"]*"\s*:\s*"((?:[^"\\]|\\.)*)"/)
+  if (m) {
+    try {
+      const embutida = JSON.parse(`"${m[1]}"`)
+      if (typeof embutida === 'string' && embutida.trim()) return embutida.trim()
+    } catch {
+      // segue para rejeicao
+    }
+  }
+  return null
+}
+
+/** Heuristica contra vazamento de raciocinio/meta-texto do modelo */
+function pareceInvalida(texto, tipo) {
+  // Remove aspas de embrulho que alguns modelos adicionam
+  const limpo = texto.replace(/^["'“”«»\s]+|["'“”«»\s]+$/g, "").trim()
+  const baixo = limpo.toLowerCase()
+  const suspeitos = [
+    'json', 'pergunta"', '```', 'markdown', 'system:', 'user:',
+    'we need', 'precisamos', 'raciocínio', 'raciocinio',
+    'o modelo', 'placeholder',
+  ]
+  const interrogacoes = (limpo.match(/\?/g) || []).length
+  return (
+    limpo.length < 10 ||
+    limpo.length > 280 ||
+    /\n/.test(limpo) ||
+    /[<>]/.test(limpo) ||                                  // placeholders tipo <text>
+    /^[a-záéíóúâêôãõç]+\s*:/i.test(limpo) ||               // rotulos tipo "Perto:"
+    (tipo === 'verdade' && (!limpo.includes('?') || interrogacoes > 2)) ||
+    suspeitos.some((s) => baixo.includes(s))
+  )
+}
+
+/** Devolve o texto limpo quando valido; null caso contrario */
+function validarPergunta(texto, tipo) {
+  if (typeof texto !== 'string') return null
+  const limpo = texto.replace(/^["'“”«»\s]+|["'“”«»\s]+$/g, "").trim()
+  return pareceInvalida(limpo, tipo) ? null : limpo
 }
 
 export default async function handler(request) {
@@ -53,9 +116,9 @@ export default async function handler(request) {
     ? ultimas.filter((q) => typeof q === 'string').slice(-MAX_ULTIMAS)
     : []
 
-  const apiKey = process.env.OPENAI_API_KEY
+  const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
-    console.error('OPENAI_API_KEY nao configurada no ambiente')
+    console.error('OPENROUTER_API_KEY nao configurada no ambiente')
     return json(500, { erro: 'Servidor sem chave de API configurada' })
   }
 
@@ -69,62 +132,67 @@ export default async function handler(request) {
     historico.length > 0
       ? `NÃO repita nem crie algo muito parecido com estas perguntas recentes:\n${historico.map((q) => `- ${q}`).join('\n')}`
       : '',
+    'Não mostre raciocínio, planejamento ou comentários - apenas o resultado final.',
     'Responda APENAS com JSON válido no formato {"pergunta": "<texto da pergunta>"} sem markdown.',
   ]
     .filter(Boolean)
     .join(' ')
 
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
+  for (const modelo of MODELOS) {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
 
-    const resposta = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: 'Gere a próxima pergunta do jogo.' },
-        ],
-        temperature: 1,
-        max_tokens: 200,
-        response_format: { type: 'json_object' },
-      }),
-      signal: controller.signal,
-    })
+      const resposta = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          // Atribuicao do app recomendada pelo OpenRouter
+          'HTTP-Referer': 'https://darewheel.vercel.app',
+          'X-Title': 'DareWheel',
+        },
+        body: JSON.stringify({
+          model: modelo,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: 'Gere a próxima pergunta do jogo.' },
+          ],
+          temperature: 1,
+          // Modelos de raciocinio consomem tokens "pensando" antes do conteudo
+          max_tokens: 900,
+          response_format: { type: 'json_object' },
+          // Modelos de raciocinio gratuitos: nao devolver tokens de "thinking"
+          reasoning: { exclude: true },
+        }),
+        signal: controller.signal,
+      })
 
-    clearTimeout(timeoutId)
+      clearTimeout(timeoutId)
 
-    if (!resposta.ok) {
-      console.error(`OpenAI respondeu ${resposta.status}`)
-      return json(502, { erro: 'Falha na API da OpenAI' })
-    }
-
-    const dados = await resposta.json()
-    const conteudo = dados.choices?.[0]?.message?.content
-
-    let pergunta = null
-    if (conteudo) {
-      try {
-        pergunta = JSON.parse(conteudo)?.pergunta ?? null
-      } catch {
-        // Modelo ignorou o formato JSON - usa o texto cru como plano B
-        pergunta = typeof conteudo === 'string' ? conteudo.trim() : null
+      if (!resposta.ok) {
+        console.error(`OpenRouter respondeu ${resposta.status} para ${modelo}`)
+        continue
       }
-    }
 
-    if (typeof pergunta !== 'string' || pergunta.length < 10) {
-      return json(502, { erro: 'Resposta vazia ou recusada pelo modelo' })
-    }
+      const dados = await resposta.json()
+      const conteudo = dados.choices?.[0]?.message?.content
+      const bruta = typeof conteudo === 'string' ? extrairPergunta(conteudo) : null
+      const pergunta = validarPergunta(bruta, tipo)
 
-    return json(200, { pergunta })
-  } catch (erro) {
-    const abortado = erro?.name === 'AbortError'
-    console.error('Erro ao chamar OpenAI:', abortado ? 'timeout' : erro)
-    return json(502, { erro: abortado ? 'Timeout ao consultar a IA' : 'Erro inesperado' })
+      if (pergunta) {
+        return json(200, { pergunta })
+      }
+
+      const bruto = typeof conteudo === 'string'
+        ? JSON.stringify(conteudo.slice(0, 250))
+        : JSON.stringify(dados).slice(0, 400)
+      console.error(`Resposta rejeitada de ${modelo}. Payload: ${bruto}`)
+    } catch (erro) {
+      const abortado = erro?.name === 'AbortError'
+      console.error(`Erro ao chamar ${modelo}:`, abortado ? 'timeout' : erro)
+    }
   }
+
+  return json(502, { erro: 'Nenhum modelo conseguiu gerar uma pergunta valida' })
 }
