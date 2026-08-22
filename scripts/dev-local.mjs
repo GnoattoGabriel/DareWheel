@@ -27,8 +27,10 @@ const MIME = {
 // .env.local -> process.env (sem sobrescrever o que ja existe)
 if (existsSync(".env.local")) {
   for (const linha of readFileSync(".env.local", "utf-8").split("\n")) {
-    const m = linha.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/)
-    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "")
+    const m = linha.trim().match(/^([A-Z0-9_]+)\s*=\s*(.*)$/)
+    if (m && !(m[1] in process.env)) {
+      process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, "")
+    }
   }
 }
 

@@ -12,8 +12,9 @@ const MAX_ULTIMAS = 5
 // O primeiro da lista pode ser sobrescrito via env OPENROUTER_MODEL.
 const MODELOS = [
   process.env.OPENROUTER_MODEL ?? 'nvidia/nemotron-3-ultra-550b-a55b:free',
-  'google/gemma-4-31b-it:free',
-  'openrouter/free',
+  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+  'google/gemma-4-26b-a4b-it:free',
+  'nvidia/nemotron-3-super-120b-a12b:free'
 ]
 
 // Limite de execucao da funcao na Vercel (segundos) - nao afeta os
