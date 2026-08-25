@@ -195,3 +195,4 @@ o jogo cai no banco /bkp normalmente.
 - [ ] Substituir window.confirm do aviso NSFW por modal proprio no estilo do jogo
 - [ ] Favicon + meta tags og para compartilhamento
 - [ ] CI simples nos PRs (GitHub Actions: tsc --noEmit + build)
+- [ ] Perguntas personalizadas criadas pelos jogadores (misturar com IA/banco; opcional modo "so minhas perguntas")
