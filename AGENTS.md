@@ -75,8 +75,8 @@ npm run dev:local   # servidor Node proprio em http://localhost:3000
 ```
 
 Serve `public/` + executa as funcoes reais de `api/`, lendo `.env.local`
-(chave `OPENROUTER_API_KEY=sk-or-...`, ja ignorado pelo git). Abrir
-`http://localhost:3000` roda o jogo completo com IA real.
+(chaves `GEMINI_API_KEY=AIza...` e `OPENROUTER_API_KEY=sk-or-...`, ja
+ignoradas pelo git). Abrir `http://localhost:3000` roda o jogo completo com IA real.
 
 > **Nota:** o `vercel dev` oficial pode TRAVAR nas funções `/api/*` no
 > Windows (estáticos servem, requisições à função ficam pendentes sem log)
@@ -164,14 +164,15 @@ o jogo cai no banco /bkp normalmente.
 - **TypeScript errors** — `npx tsc` deve ser verde antes de executar qualquer coisa
 - **Mobile-first** — todas as novas features devem ser testadas em width < 640px
 - **Roleta injusta em 2 jogadores** — com apenas 2 players, cada um tem 180°. O ângulo inicial aleatorio `0-360` garante probabilidade igual.
-- **Arquitetura da API** — cliente chama `/api/pergunta` (proxy serverless na Vercel); `OPENROUTER_API_KEY` vive so nas env vars do painel (Production + Preview; local via `.env.local` para `dev-local.mjs`). Cadeia de modelos: `nvidia/nemotron-3-ultra-550b-a55b:free` (primaria, configuravel via env `OPENROUTER_MODEL`) → `google/gemma-4-31b-it:free` → `openrouter/free`; primeira resposta valida ganha. Resposta sempre em pt-BR, JSON com extracao em 3 camadas (parse direto, chave com typo, resgate generico de string citada) + heuristica anti-vazamento. Anti-repeticao: as ultimas 5 perguntas vao no prompt
-- **Limites OpenRouter** — plano gratis: 20 req/min e 50 req/dia (1.000/dia apos US$ 10 unicos em creditos). Modelos gratuitos rotacionam (conferir `/api/v1/models`); 429/402 e respostas invalidas caem no banco /bkp automaticamente
+- **Arquitetura da API** — cliente chama `/api/pergunta` (proxy serverless na Vercel); chaves `GEMINI_API_KEY` e `OPENROUTER_API_KEY` vivem so nas env vars do painel (local via `.env.local` para `dev-local.mjs`). Cadeia por nivel: SFW/Moderado = `gemini-flash-lite-latest` → `gemini-flash-latest` → `openrouter/free`; **NSFW comeca pelo OpenRouter** (`nvidia/nemotron-3-ultra`) porque o free tier do Gemini bloqueia saida explicita (finishReason SAFETY, inconfiguravel mesmo com threshold OFF). Resposta sempre em pt-BR, JSON com extracao em 3 camadas + heuristica anti-vazamento. Anti-repeticao: as ultimas 5 perguntas vao no prompt
+- **Limites de cota** — Gemini free tier: ~1.500 req/dia (Flash-Lite), reset meia-noite Pacific, sem cartao; OpenRouter free: 50/dia (1.000 apos US$ 10 unicos), reset meia-noite UTC. 429 e respostas invalidas caem no banco /bkp automaticamente
 - **NSFW via API** — os 3 niveis chamam a API (desde sprint 4); recusa/vazio do modelo cai no banco /bkp automaticamente
 - **Origem da pergunta** — perguntas do banco mostram tag "📦 banco de perguntas"; perguntas da IA nao tem marcacao. Sufixo `/bkp` nunca aparece cru no texto
 - **Confirmacao de idade** — modo NSFW deve mostrar aviso na tela inicial antes de permitir jogar
 
 ## Recent Changes (Ultima sessao)
 
+- Migracao de provedor: Gemini nativo como caminho rapido (flash-lite ~1s/request) com OpenRouter de reserva; cadeia condicionada ao nivel (NSFW via Nemotron Ultra); safetySettings BLOCK_ONLY_HIGH no Gemini; smoke tests 6/6 aceitos (0,9s-3,8s)
 - Sprint 4 concluido: `api/pergunta.js` (proxy serverless, OpenRouter com cadeia de modelos gratuitos, JSON mode) + `src/api.ts` (cliente timeout 8s); os 3 niveis chamam a API; ultimas 5 perguntas vao no prompt (anti-repeticao); tag "📦 banco de perguntas" substitui o sufixo /bkp cru na exibicao
 - Rebrand para DareWheel: titulo/h1/package.json/localStorage keys (`darewheel_config|estado|som`)/AGENTS.md; repo github.com/GnoattoGabriel/DareWheel com `main` (prod) + `dev`; `vercel.json` com buildCommand `npm run build` e estaticos em `public/` (convencao da plataforma)
 - Sprint 3 concluido: `src/levels.ts` com bancos /bkp (6 categorias x 10 perguntas), anti-repeticao via perguntasUsadas, fallback consome o banco

@@ -1,25 +1,35 @@
-// Proxy serverless Vercel - a chave OpenRouter nunca chega ao cliente.
+// Proxy serverless Vercel - chaves (Gemini/OpenRouter) nunca chegam ao cliente.
 // POST /api/pergunta
 // Body: { tipo: "verdade"|"consequencia", nivel: "sfw"|"moderado"|"nsfw", nome: string, ultimas: string[] }
 // Resposta: { "pergunta": "..." } | Erro: { "erro": "..." }
 
-const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
 const MAX_ULTIMAS = 5
 
-// Cadeia de modelos: o roteador gratuito as vezes cai em "reasoners"
-// gigantes que estouram o timeout sem produzir conteudo - tentamos os
-// reservas antes de desistir e deixar o cliente usar o banco /bkp.
-// O primeiro da lista pode ser sobrescrito via env OPENROUTER_MODEL.
-const MODELOS = [
-  process.env.OPENROUTER_MODEL ?? 'nvidia/nemotron-3-ultra-550b-a55b:free',
-  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-  'google/gemma-4-26b-a4b-it:free',
-  'nvidia/nemotron-3-super-120b-a12b:free'
+// Cadeias por nivel: o free tier do Gemini bloqueia saida sexualmente
+// explicita (finishReason SAFETY, inconfiguravel), entao NSFW comeca pelo
+// OpenRouter (Nemotron Ultra aceita); os demais niveis usam o caminho
+// rapido do Gemini. Aliases "-latest" acompanham o modelo atual.
+const CADEIA_GEMINI_PRIMEIRO = [
+  { modelo: process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest', provedor: 'gemini' },
+  { modelo: 'gemini-flash-latest', provedor: 'gemini' },
+  { modelo: 'openrouter/free', provedor: 'openrouter' },
+]
+const CADEIA_NSFW = [
+  { modelo: 'nvidia/nemotron-3-ultra-550b-a55b:free', provedor: 'openrouter' },
+  { modelo: process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest', provedor: 'gemini' },
 ]
 
+function cadeiaParaNivel(nivel) {
+  return nivel === 'nsfw' ? CADEIA_NSFW : CADEIA_GEMINI_PRIMEIRO
+}
+
+const ENDPOINT_GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models'
+const ENDPOINT_OPENROUTER = 'https://openrouter.ai/api/v1/chat/completions'
+const TIMEOUT_POR_MODELO_MS = 15000
+
 // Limite de execucao da funcao na Vercel (segundos) - nao afeta os
-// timeouts internos (abort 15s), so evita que a plataforma mate a
-// funcao durante chamadas longas a OpenAI
+// timeouts internos, so evita que a plataforma mate a funcao antes
+// da cadeia completa tentar todos os modelos
 export const maxDuration = 60
 
 const NIVEIS = {
@@ -87,7 +97,6 @@ function extrairPergunta(conteudo, tipo) {
 
 /** Heuristica contra vazamento de raciocinio/meta-texto do modelo */
 function pareceInvalida(texto, tipo) {
-  // Remove aspas de embrulho que alguns modelos adicionam
   const limpo = texto.replace(/^["'“”«»\s]+|["'“”«»\s]+$/g, "").trim()
   const baixo = limpo.toLowerCase()
   const suspeitos = [
@@ -114,6 +123,82 @@ function validarPergunta(texto, tipo) {
   return pareceInvalida(limpo, tipo) ? null : limpo
 }
 
+async function chamarGemini(modelo, system, apiKey, sinal) {
+  const resposta = await fetch(`${ENDPOINT_GEMINI}/${modelo}:generateContent`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
+    },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: 'user', parts: [{ text: 'Gere a próxima pergunta do jogo.' }] }],
+      generationConfig: {
+        temperature: 1,
+        // Modelos com thinking consomem tokens antes do conteudo final
+        maxOutputTokens: 2048,
+        responseMimeType: 'application/json',
+      },
+      // Relaxado para permitir perguntas picantes do nivel NSFW;
+      // recusas eventuais caem no banco /bkp normalmente
+      safetySettings: [
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
+      ],
+    }),
+    signal: sinal,
+  })
+
+  if (!resposta.ok) {
+    throw new Error(`HTTP ${resposta.status}`)
+  }
+
+  const dados = await resposta.json()
+  const partes = dados.candidates?.[0]?.content?.parts ?? []
+  return partes
+    .filter((p) => p.thought !== true && typeof p.text === 'string')
+    .map((p) => p.text)
+    .join('')
+    .trim()
+}
+
+async function chamarOpenRouter(modelo, system, apiKey, sinal) {
+  const resposta = await fetch(ENDPOINT_OPENROUTER, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+      // Atribuicao do app recomendada pelo OpenRouter
+      'HTTP-Referer': 'https://darewheel.vercel.app',
+      'X-Title': 'DareWheel',
+    },
+    body: JSON.stringify({
+      model: modelo,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: 'Gere a próxima pergunta do jogo.' },
+      ],
+      temperature: 1,
+      // Modelos de raciocinio consomem tokens "pensando" antes do conteudo
+      max_tokens: 900,
+      response_format: { type: 'json_object' },
+      // Modelos de raciocinio gratuitos: nao devolver tokens de "thinking"
+      reasoning: { exclude: true },
+    }),
+    signal: sinal,
+  })
+
+  if (!resposta.ok) {
+    throw new Error(`HTTP ${resposta.status}`)
+  }
+
+  const dados = await resposta.json()
+  const conteudo = dados.choices?.[0]?.message?.content
+  return typeof conteudo === 'string' ? conteudo.trim() : ''
+}
+
 export default async function handler(request) {
   if (request.method !== 'POST') {
     return json(405, { erro: 'Método não permitido' })
@@ -138,9 +223,10 @@ export default async function handler(request) {
     ? ultimas.filter((q) => typeof q === 'string').slice(-MAX_ULTIMAS)
     : []
 
-  const apiKey = process.env.OPENROUTER_API_KEY
-  if (!apiKey) {
-    console.error('OPENROUTER_API_KEY nao configurada no ambiente')
+  const chaveGemini = process.env.GEMINI_API_KEY
+  const chaveOpenRouter = process.env.OPENROUTER_API_KEY
+  if (!chaveGemini && !chaveOpenRouter) {
+    console.error('Nenhuma chave de IA configurada (GEMINI_API_KEY / OPENROUTER_API_KEY)')
     return json(500, { erro: 'Servidor sem chave de API configurada' })
   }
 
@@ -160,59 +246,28 @@ export default async function handler(request) {
     .filter(Boolean)
     .join(' ')
 
-  for (const modelo of MODELOS) {
+  for (const item of cadeiaParaNivel(nivel)) {
+    const apiKey = item.provedor === 'gemini' ? chaveGemini : chaveOpenRouter
+    if (!apiKey) continue // provedor sem chave configurada - proximo da cadeia
+
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 15000)
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_POR_MODELO_MS)
 
-      const resposta = await fetch(ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-          // Atribuicao do app recomendada pelo OpenRouter
-          'HTTP-Referer': 'https://darewheel.vercel.app',
-          'X-Title': 'DareWheel',
-        },
-        body: JSON.stringify({
-          model: modelo,
-          messages: [
-            { role: 'system', content: system },
-            { role: 'user', content: 'Gere a próxima pergunta do jogo.' },
-          ],
-          temperature: 1,
-          // Modelos de raciocinio consomem tokens "pensando" antes do conteudo
-          max_tokens: 900,
-          response_format: { type: 'json_object' },
-          // Modelos de raciocinio gratuitos: nao devolver tokens de "thinking"
-          reasoning: { exclude: true },
-        }),
-        signal: controller.signal,
-      })
+      const chamador = item.provedor === 'gemini' ? chamarGemini : chamarOpenRouter
+      const conteudo = await chamador(item.modelo, system, apiKey, controller.signal)
 
       clearTimeout(timeoutId)
 
-      if (!resposta.ok) {
-        console.error(`OpenRouter respondeu ${resposta.status} para ${modelo}`)
-        continue
-      }
-
-      const dados = await resposta.json()
-      const conteudo = dados.choices?.[0]?.message?.content
-      const bruta = typeof conteudo === 'string' ? extrairPergunta(conteudo, tipo) : null
-      const pergunta = validarPergunta(bruta, tipo)
-
+      const pergunta = conteudo ? extrairPergunta(conteudo, tipo) : null
       if (pergunta) {
         return json(200, { pergunta })
       }
 
-      const bruto = typeof conteudo === 'string'
-        ? JSON.stringify(conteudo.slice(0, 250))
-        : JSON.stringify(dados).slice(0, 400)
-      console.error(`Resposta rejeitada de ${modelo}. Payload: ${bruto}`)
+      console.error(`Resposta rejeitada de ${item.modelo} (${item.provedor}). Conteudo: ${JSON.stringify(String(conteudo).slice(0, 250))}`)
     } catch (erro) {
       const abortado = erro?.name === 'AbortError'
-      console.error(`Erro ao chamar ${modelo}:`, abortado ? 'timeout' : erro)
+      console.error(`Erro ao chamar ${item.modelo} (${item.provedor}):`, abortado ? 'timeout' : erro?.message ?? erro)
     }
   }
 
