@@ -172,6 +172,10 @@ o jogo cai no banco /bkp normalmente.
 
 ## Recent Changes (Ultima sessao)
 
+- API em producao corrigida e validada: o runtime da Vercel exige export nomeado por metodo (`export async function POST`) para estilo Web API - com `export default` ele tratava como Node `(req,res)` e ignorava respostas (funcao travava sem responder nem GET 405); `maxDuration` movido para bloco `functions` do vercel.json
+- Audio: novo `audio.desbloquear()` chamado dentro do clique da roleta (contexto acorda no gesto, nao durante o rAF) - corrige primeiro giro mudo; giro com piso de 4 voltas (1440+rand360) para variacao percebida menor entre rodadas
+- Banco NSFW /bkp expandido para 50 verdades + 50 desafios (+40 de cada; total do jogo: 140 perguntas); `scripts/verifica-banco.mjs` valida contagens/duplicatas/sufixo; ideia de perguntas personalizadas registrada no backlog (prioridade minima)
+- Producao validada em https://darewheel.vercel.app: GET 405 em 0,2s, IA respondendo nos 3 niveis, banco novo servido
 - Migracao de provedor: Gemini nativo como caminho rapido (flash-lite ~1s/request) com OpenRouter de reserva; cadeia condicionada ao nivel (NSFW via Nemotron Ultra); safetySettings BLOCK_ONLY_HIGH no Gemini; smoke tests 6/6 aceitos (0,9s-3,8s)
 - Sprint 4 concluido: `api/pergunta.js` (proxy serverless, OpenRouter com cadeia de modelos gratuitos, JSON mode) + `src/api.ts` (cliente timeout 8s); os 3 niveis chamam a API; ultimas 5 perguntas vao no prompt (anti-repeticao); tag "📦 banco de perguntas" substitui o sufixo /bkp cru na exibicao
 - Rebrand para DareWheel: titulo/h1/package.json/localStorage keys (`darewheel_config|estado|som`)/AGENTS.md; repo github.com/GnoattoGabriel/DareWheel com `main` (prod) + `dev`; `vercel.json` com buildCommand `npm run build` e estaticos em `public/` (convencao da plataforma)
