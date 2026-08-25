@@ -4,6 +4,7 @@
   "type": "module",
   "main": "dist/src/index.js",
   "scripts": {
+    "dev:local": "node scripts/dev-local.mjs",
     "build": "tsc && node scripts/build-bundle.mjs",
     "typecheck": "tsc --noEmit"
   },

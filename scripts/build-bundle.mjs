@@ -1,8 +1,8 @@
-import { readdirSync, readFileSync, writeFileSync } from "node:fs"
-import { join } from "node:path"
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
+import { dirname, join } from "node:path"
 
 const SRC_DIR = "dist/src"
-const OUT_FILE = "dist/bundle.js"
+const OUT_FILE = "public/dist/bundle.js"
 
 function extrairImports(codigo) {
   const deps = []
@@ -55,5 +55,6 @@ const codigoFinal = ordem
   })
   .join("\n\n")
 
+mkdirSync(dirname(OUT_FILE), { recursive: true })
 writeFileSync(OUT_FILE, `(() => {\n"use strict";\n${codigoFinal}\n})();\n`, "utf-8")
 console.log(`Bundle gerado: ${OUT_FILE} (${ordem.length} modulos: ${ordem.join(", ")})`)
