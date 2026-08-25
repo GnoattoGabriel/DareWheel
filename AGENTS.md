@@ -6,7 +6,7 @@
 - **`public/`** — Estáticos servidos pela Vercel (`index.html`, `styles/`, `dist/bundle.js` gerado no build)
 - **`src/`** — Source TypeScript files (types, menu, wheel, levels [bancos /bkp], audio [WebAudio], api [cliente do proxy])
 - **`api/`** — Funções serverless Vercel (`pergunta.js` = proxy OpenAI)
-- **`scripts/`** — build-bundle.mjs (bundle file://), dev-local.mjs (servidor dev) e auditoria-contraste.mjs
+- **`scripts/`** — build-bundle.mjs (bundle file://), dev-local.mjs (servidor dev), auditoria-contraste.mjs e verifica-banco.mjs (integridade dos bancos /bkp)
 - **`dist/`** — Output do tsc (intermediário, never commit)
 - **`.vscode/`** — VS Code configuration
 
@@ -175,5 +175,23 @@ o jogo cai no banco /bkp normalmente.
 - Migracao de provedor: Gemini nativo como caminho rapido (flash-lite ~1s/request) com OpenRouter de reserva; cadeia condicionada ao nivel (NSFW via Nemotron Ultra); safetySettings BLOCK_ONLY_HIGH no Gemini; smoke tests 6/6 aceitos (0,9s-3,8s)
 - Sprint 4 concluido: `api/pergunta.js` (proxy serverless, OpenRouter com cadeia de modelos gratuitos, JSON mode) + `src/api.ts` (cliente timeout 8s); os 3 niveis chamam a API; ultimas 5 perguntas vao no prompt (anti-repeticao); tag "📦 banco de perguntas" substitui o sufixo /bkp cru na exibicao
 - Rebrand para DareWheel: titulo/h1/package.json/localStorage keys (`darewheel_config|estado|som`)/AGENTS.md; repo github.com/GnoattoGabriel/DareWheel com `main` (prod) + `dev`; `vercel.json` com buildCommand `npm run build` e estaticos em `public/` (convencao da plataforma)
-- Sprint 3 concluido: `src/levels.ts` com bancos /bkp (6 categorias x 10 perguntas), anti-repeticao via perguntasUsadas, fallback consome o banco
+- Sprint 3 concluido: `src/levels.ts` com bancos /bkp, anti-repeticao via perguntasUsadas, fallback consome o banco; banco NSFW expandido para 50 verdades + 50 desafios (total do jogo: 140 perguntas)
 - Jogadores sao emojis: seletor curado de 32 emojis (limite 8, sem duplicatas), emojis renderizados dentro das fatias, cor fixa por jogador (Participante.cor)
+## Roadmap
+
+### Critico (concluido)
+- [x] Merge dev -> main com correcao da API em producao (export POST nomeado)
+- [x] GEMINI_API_KEY configurada no painel Vercel
+- [x] Producao validada manualmente: IA respondendo, som no primeiro giro, giros consistentes
+
+### Sprint 5 - Polimento e beta (em andamento)
+- [ ] Beta test com pessoas reais (celular + desktop), coletando feedback
+- [ ] Revisao de UX mobile jogando de verdade (< 640px)
+- [ ] Ajustes visuais/fluxos apontados pelo beta
+
+### Backlog (nao bloqueante)
+- [ ] Ampliar bancos SFW e Moderado /bkp (hoje 10+10 cada)
+- [ ] Extrair src/estado.ts e src/participants.ts (refatoracoes previstas)
+- [ ] Substituir window.confirm do aviso NSFW por modal proprio no estilo do jogo
+- [ ] Favicon + meta tags og para compartilhamento
+- [ ] CI simples nos PRs (GitHub Actions: tsc --noEmit + build)
