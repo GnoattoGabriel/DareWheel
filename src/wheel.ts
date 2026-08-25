@@ -294,7 +294,7 @@ export class Wheel {
   /**
    * Gira a agulha (estilo garrafa) sobre a roleta parada.
    * - Assentos embaralhados a cada rodada (mascarados pelo pulso de giro)
-   * - Rotação acumulativa: sempre avança 3 voltas (+ aleatório 0-360)
+   * - Rotação acumulativa: sempre avança 4 voltas (+ aleatório 0-360)
    * - Animação dura 4s com cubic-bezier easing
    * - Boca aponta quem responde; bunda (oposto, +180°), quem pergunta
    */
@@ -334,9 +334,10 @@ export class Wheel {
       return true
     }
 
-    // Rotação ACUMULATIVA da agulha: sempre avança 3 voltas (+ aleatório)
-    // a partir da posição atual, com valor diferente a cada rodada
-    const delta = 1080 + Math.random() * 360
+    // Rotação ACUMULATIVA da agulha: sempre avança 4 voltas (+ aleatório)
+    // a partir da posição atual. Piso alto = variação percebida menor
+    // entre giros (antes 3-4 voltas parecia inconsistente demais)
+    const delta = 1440 + Math.random() * 360
     this.rotacaoAtual += delta
 
     this.girando = true

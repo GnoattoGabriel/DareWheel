@@ -27,11 +27,6 @@ const ENDPOINT_GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models
 const ENDPOINT_OPENROUTER = 'https://openrouter.ai/api/v1/chat/completions'
 const TIMEOUT_POR_MODELO_MS = 15000
 
-// Limite de execucao da funcao na Vercel (segundos) - nao afeta os
-// timeouts internos, so evita que a plataforma mate a funcao antes
-// da cadeia completa tentar todos os modelos
-export const maxDuration = 60
-
 const NIVEIS = {
   sfw: 'leve e apropriada para todos os públicos, para quebrar o gelo',
   moderado: 'pessoal e com um toque picante leve, equilibrando intimidade e bom gosto',
@@ -199,7 +194,10 @@ async function chamarOpenRouter(modelo, system, apiKey, sinal) {
   return typeof conteudo === 'string' ? conteudo.trim() : ''
 }
 
-export default async function handler(request) {
+// Export nomeado por metodo HTTP: o runtime da Vercel reconhece o estilo
+// Web API apenas com exports nomeados (GET/POST...); com export default
+// ele interpreta a assinatura como Node (req, res) e ignora as respostas
+export async function POST(request) {
   if (request.method !== 'POST') {
     return json(405, { erro: 'Método não permitido' })
   }

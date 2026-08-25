@@ -756,6 +756,9 @@ export class Menu {
     this.rerollUsos = 0
     this.atualizarBotaoReroll(false)
 
+    // Desbloquear audio dentro do gesto do clique (antes do giro comecar)
+    audio.desbloquear()
+
     // Girar a roleta novamente
     this.girarRoletaNovamente()
   }

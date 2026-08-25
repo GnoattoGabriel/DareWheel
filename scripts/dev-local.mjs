@@ -34,11 +34,12 @@ if (existsSync(".env.local")) {
   }
 }
 
-// Descobre as funcoes de api/ uma unica vez
+// Descobre as funcoes de api/ uma unica vez (export nomeado POST ou default)
 const funcoes = {}
 for (const arquivo of readdirSync("api").filter((f) => f.endsWith(".js"))) {
   const rota = `/api/${arquivo.replace(/\.js$/, "")}`
-  funcoes[rota] = (await import(`../api/${arquivo}`)).default
+  const mod = await import(`../api/${arquivo}`)
+  funcoes[rota] = mod.POST ?? mod.default
 }
 
 async function lerCorpo(req) {

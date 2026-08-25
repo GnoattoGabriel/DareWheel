@@ -34,6 +34,15 @@ class AudioJogo {
     return this.ctx
   }
 
+  /**
+   * Cria/resume o AudioContext DENTRO do gesto do usuario, antes do giro.
+   * Sem isso os primeiros ticks se perdem: o resume() e assincrono e o
+   * contexto acorda depois de os osciladores ja terem sido agendados.
+   */
+  public desbloquear(): void {
+    this.contexto()
+  }
+
   private nota(freq: number, duracaoSeg: number, volume: number, quando = 0, tipo: OscillatorType = "triangle"): void {
     const ctx = this.contexto()
     if (!ctx) return
