@@ -30,7 +30,7 @@ const TIMEOUT_POR_MODELO_MS = 15000
 const NIVEIS = {
   sfw: 'leve e apropriada para todos os públicos, para quebrar o gelo',
   moderado: 'pessoal e com um toque picante leve, equilibrando intimidade e bom gosto',
-  nsfw: 'explícita e ousada, para uma festa de adultos maiores de 18 anos que consentiram em jogar',
+  nsfw: 'explícita e ousada, para uma festa de adultos maiores de 18 anos que consentiram em jogar, mantenha apropriado, sem nada explicitamente sexual',
 }
 
 const TIPOS = {
