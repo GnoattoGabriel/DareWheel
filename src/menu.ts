@@ -3,6 +3,7 @@ import { ResultadoGiro, Wheel } from "./wheel.js"
 import { BANCOS_PERGUNTAS, TipoPergunta } from "./levels.js"
 import { audio } from "./audio.js"
 import { pedirPergunta } from "./api.js"
+import { modal } from "./modal.js"
 
 const PALETA = Wheel.PALETA_CORES
 
@@ -25,6 +26,7 @@ export class Menu {
   private escolhaPendente: Participante | null = null
   private ultimoTipo: "verdade" | "consequencia" = "verdade"
   private perguntasUsadas: Set<string> = new Set()
+  private rodadaAtual: number = 1
 
   constructor() {
     this.inicializar()
@@ -151,7 +153,7 @@ export class Menu {
       lista.innerHTML = participantes
         .map(
           (p) =>
-            `<div class="participante-item" data-id="${p.id}" data-cor="${p.cor ?? ""}">
+            `<div class="participante-item" data-id="${p.id}" data-cor="${p.cor ?? ""}" data-display-name="${p.displayName ?? ""}">
                  <span class="chip-cor" style="background:${p.cor ?? "#999"}" aria-hidden="true"></span>
                  <span class="participante-emoji">${p.nome}</span>
                  <button class="remover-participante" data-id="${p.id}" aria-label="Remover jogador ${p.nome}">×</button>
@@ -326,24 +328,31 @@ export class Menu {
     }
 
     if (configAtual.participantes.length >= Menu.MAX_PARTICIPANTES) return
-    // Sem duplicatas: cada emoji e um jogador unico
     if (configAtual.participantes.some((p) => p.nome === emoji)) return
 
-    // Cor fixa de fatia: primeira cor livre da paleta
-    const usadas = new Set(configAtual.participantes.map((p) => p.cor))
-    const cor = PALETA.find((c) => !usadas.has(c))
+    modal
+      .open(
+        "Nome do Jogador",
+        `Digite um nome para ${emoji} (opcional, apenas para a legenda ao lado da roleta).`,
+        "Nome opcional"
+      )
+      .then((displayName) => {
+        const usadas = new Set(configAtual.participantes.map((p) => p.cor))
+        const cor = PALETA.find((c) => !usadas.has(c))
 
-    const novoParticipante: Participante = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      nome: emoji,
-      cor,
-    }
-    const participantes = [...configAtual.participantes, novoParticipante]
+        const novoParticipante: Participante = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          nome: emoji,
+          displayName: displayName || undefined,
+          cor,
+        }
+        const participantes = [...configAtual.participantes, novoParticipante]
 
-    this.salvarConfig({ ...configAtual, participantes })
+        this.salvarConfig({ ...configAtual, participantes })
+      })
   }
 
-  private iniciarJogo(): void {
+  private async iniciarJogo(): Promise<void> {
     const config = this.obterConfig()
     if (!config || config.participantes.length < 2) {
       alert("Adicione pelo menos 2 participantes para iniciar o jogo!")
@@ -352,9 +361,9 @@ export class Menu {
 
     // Verificar idade para modo NSFW
     if (config.nivel === NivelPicancia.NSFW) {
-      const confirmado = window.confirm(
-        "Você tem 18 anos ou mais? Este modo contém perguntas explícitas.\n\n" +
-        "Ao concordar, você declara ter a idade mínima permitida."
+      const confirmado = await modal.confirm(
+        "Confirmação de Idade",
+        "Você tem 18 anos ou mais? Este modo contém perguntas explícitas para maiores de 18 anos.\n\nAo confirmar, você declara ter a idade mínima permitida."
       )
       if (!confirmado) {
         alert("Jogo não iniciado. Selecione outro nível de picância.")
@@ -432,6 +441,10 @@ export class Menu {
     if (escolha) escolha.style.display = 'none'
     this.escolhaPendente = null
 
+    // Limpar legenda
+    const legenda = document.getElementById('legenda-participantes')
+    if (legenda) legenda.innerHTML = ''
+
     // Mostrar menu e devolver o foco para um elemento visivel
     const menu = document.getElementById('menu-principal')
     if (menu) menu.style.display = ''
@@ -470,7 +483,8 @@ export class Menu {
       const idAttr = item.getAttribute('data-id')
       const id = idAttr || Date.now().toString()
       const cor = item.getAttribute('data-cor') || undefined
-      return cor ? { id, nome, cor } : { id, nome }
+      const displayName = item.getAttribute('data-display-name') || undefined
+      return cor || displayName ? { id, nome, cor, displayName: displayName || undefined } : { id, nome }
     })
   }
 
@@ -484,6 +498,24 @@ export class Menu {
       participantes,
       true // respeitarReducedMotion
     )
+    this.renderizarLegenda(participantes)
+  }
+
+  private renderizarLegenda(participantes: Participante[]): void {
+    const container = document.getElementById('legenda-participantes')
+    if (!container) return
+
+    if (participantes.length === 0) {
+      container.innerHTML = ''
+      return
+    }
+
+    container.innerHTML = participantes
+      .map((p) => {
+        const nome = p.displayName ? `${p.displayName} ${p.nome}` : p.nome
+        return `<span class="legenda-item" style="color:${p.cor || '#999'}">${nome}</span>`
+      })
+      .join(' &nbsp;|&nbsp; ')
   }
 
   private configAtual: ConfigJogo = {
@@ -543,11 +575,12 @@ export class Menu {
       this.exibirCarregando()
       try {
         this.ultimoTipo = tipo
-        const pergunta = await this.gerarPerguntaAPI(boca.nome, tipo, this.configAtual.nivel)
+        const pergunta = await this.gerarPergunta(boca.nome, tipo, this.configAtual.nivel)
         this.exibirPergunta(pergunta, this.configAtual)
       } catch (erro) {
         console.error("Erro ao gerar pergunta", erro)
-        this.exibirPerguntaFallback(boca, this.configAtual)
+        const fallback = this.obterPerguntaFallback(boca.nome, tipo, this.configAtual.nivel)
+        this.exibirPergunta(fallback, this.configAtual)
       }
     }
 
@@ -611,11 +644,12 @@ export class Menu {
     this.exibirCarregando()
 
     try {
-      const pergunta = await this.gerarPerguntaAPI(vencedor.nome, tipo, config.nivel)
+      const pergunta = await this.gerarPergunta(vencedor.nome, tipo, config.nivel)
       this.exibirPergunta(pergunta, config)
     } catch (erro) {
       console.error("Erro ao gerar pergunta", erro)
-      this.exibirPerguntaFallback(vencedor, config)
+      const fallback = this.obterPerguntaFallback(vencedor.nome, tipo, config.nivel)
+      this.exibirPergunta(fallback, config)
     }
   }
 
@@ -626,7 +660,7 @@ export class Menu {
       nome,
       tipo,
       nivel,
-      ultimas: [...this.perguntasUsadas],
+      ultimas: [...this.perguntasUsadas].slice(-15),
     })
     this.perguntasUsadas.add(pergunta)
     return pergunta
@@ -688,6 +722,57 @@ export class Menu {
   private atualizarContadorRodadas(rodada: number): void {
     const contador = document.getElementById('contador-rodadas')
     if (contador) contador.textContent = `Rodada ${rodada}`
+  }
+
+  private getRodadaAtual(): number {
+    const estado = localStorage.getItem(this.estadoKey)
+    if (estado) {
+      try {
+        const parsed = JSON.parse(estado) as Partial<EstadoJogo>
+        if (typeof parsed.rodadaAtual === 'number') {
+          // O valor armazenado é a próxima rodada (incrementado após cada giro).
+          // Para exibição e lógica de padrão, usamos o número da rodada atual (armazenado - 1).
+          this.rodadaAtual = Math.max(1, parsed.rodadaAtual - 1)
+          return this.rodadaAtual
+        }
+      } catch {
+        // ignora erro
+      }
+    }
+    return this.rodadaAtual
+  }
+
+  private deveUsarBanco(): boolean {
+    const rodada = this.getRodadaAtual()
+    if (rodada < 20) {
+      return false
+    }
+    const posicao = (rodada - 20) % 3
+    return posicao === 0 || posicao === 1
+  }
+
+  private async gerarPergunta(nome: string, tipo: "verdade" | "consequencia", nivel: NivelPicancia): Promise<string> {
+    if (this.deveUsarBanco()) {
+      const pergunta = this.selecionarPerguntaBanco(tipo, nivel)
+      if (pergunta) {
+        this.perguntasUsadas.add(pergunta)
+        return pergunta
+      }
+    }
+    try {
+      const pergunta = await this.gerarPerguntaAPI(nome, tipo, nivel)
+      return pergunta
+    } catch (erro) {
+      console.error("Erro ao gerar pergunta via API, caindo no banco", erro)
+      const fallback = this.selecionarPerguntaBanco(tipo, nivel)
+      if (fallback) {
+        this.perguntasUsadas.add(fallback)
+        return fallback
+      }
+      return tipo === "verdade"
+        ? "Qual a qualidade que você mais valoriza em um amigo?"
+        : "Faça 10 polichinelos agora!"
+    }
   }
 
   private exibirPergunta(pergunta: string, config: ConfigJogo): void {
@@ -774,6 +859,7 @@ export class Menu {
     }
 
     this.wheel.girar(participantes)
+    this.renderizarLegenda(participantes)
   }
 
   private async handleReroll(): Promise<void> {
@@ -789,11 +875,12 @@ export class Menu {
     // Gerar nova pergunta usando o mesmo tipo da rodada atual
     this.exibirCarregando()
     try {
-      const pergunta = await this.gerarPerguntaAPI(this.wheelVencedor.nome, this.ultimoTipo, config.nivel)
+      const pergunta = await this.gerarPergunta(this.wheelVencedor.nome, this.ultimoTipo, config.nivel)
       this.exibirPergunta(pergunta, config)
     } catch (erro) {
       console.error("Erro ao reroll pergunta", erro)
-      this.exibirPerguntaFallback(this.wheelVencedor, config)
+      const fallback = this.obterPerguntaFallback(this.wheelVencedor.nome, this.ultimoTipo, config.nivel)
+      this.exibirPergunta(fallback, config)
     }
   }
 

@@ -3,7 +3,7 @@
 // Body: { tipo: "verdade"|"consequencia", nivel: "sfw"|"moderado"|"nsfw", nome: string, ultimas: string[] }
 // Resposta: { "pergunta": "..." } | Erro: { "erro": "..." }
 
-const MAX_ULTIMAS = 5
+const MAX_ULTIMAS = 15
 
 // Cadeias por nivel: o free tier do Gemini bloqueia saida sexualmente
 // explicita (finishReason SAFETY, inconfiguravel), entao NSFW comeca pelo
@@ -29,8 +29,8 @@ const TIMEOUT_POR_MODELO_MS = 15000
 
 const NIVEIS = {
   sfw: 'leve e apropriada para todos os públicos, para quebrar o gelo',
-  moderado: 'pessoal e com um toque picante leve, equilibrando intimidade e bom gosto',
-  nsfw: 'explícita e ousada, para uma festa de adultos maiores de 18 anos que consentiram em jogar, mantenha apropriado, sem nada explicitamente sexual',
+  moderado: 'pessoal e divertida, com perguntas que geram conversa interessante, equilibrando leveza e curiosidade — nada muito íntimo ou ousado',
+  nsfw: 'explícita e ousada, para maiores de 18 anos consentidos. Perguntas diretas sobre sexualidade adulta, experiências íntimas e desejos. Seja direto, sem filtros educativos, sem "manter apropriado" ou "bom gosto" que diluam a intenção. O contexto é festa entre adultos consentidos.',
 }
 
 const TIPOS = {
@@ -236,7 +236,7 @@ export async function POST(request) {
     `Personalize levemente usando o nome do jogador: ${nome.trim()}. Não comece a pergunta pelo nome.`,
     'A pergunta deve ter no máximo 2 frases, ser direta e caber numa linha de tela de celular.',
     historico.length > 0
-      ? `NÃO repita nem crie algo muito parecido com estas perguntas recentes:\n${historico.map((q) => `- ${q}`).join('\n')}`
+      ? `IMPORTANTE: NÃO repita NENHUMA das perguntas abaixo. Gere uma pergunta COMPLETAMENTE DIFERENTE em tema, estrutura e palavras-chave.\nPerguntas já usadas (não repita nem varie levemente):\n${historico.map((q) => `- ${q}`).join('\n')}`
       : '',
     'Não mostre raciocínio, planejamento ou comentários - apenas o resultado final.',
     'Responda APENAS com JSON válido no formato {"pergunta": "<texto da pergunta>"} sem markdown.',

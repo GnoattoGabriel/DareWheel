@@ -463,6 +463,36 @@ header p {
   border-radius: 999px;
 }
 
+.roleta-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Legenda dos participantes ao lado da roleta */
+.legenda-participantes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: max(12px, 0.8rem);
+  font-weight: 500;
+  color: var(--texto);
+  min-height: 1.5em;
+}
+
+.legenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--borda-suave);
+}
+
 /* Aro de carnaval: lâmpadas que piscam durante o giro */
 .aro-luzes {
   position: absolute;
@@ -841,4 +871,152 @@ input:focus-visible {
 
 .btn-escolha-desafio:hover {
   background: #824a00;
+}
+
+/* Modal estilizado - consistente com o design do jogo */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: var(--fundo-2);
+  border: 1px solid var(--borda-suave);
+  border-radius: 16px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  transform: scale(0.9);
+  opacity: 0;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modal-overlay[style*="flex"] .modal-content {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.modal-content h3 {
+  margin: 0 0 0.75rem;
+  font-family: var(--fonte-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--texto);
+  text-align: center;
+}
+
+.modal-content p {
+  margin: 0 0 1.5rem;
+  color: var(--texto-suave);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.modal-input-wrapper {
+  margin-bottom: 1.5rem;
+}
+
+.modal-input-wrapper input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--texto);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--borda-suave);
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.modal-input-wrapper input::placeholder {
+  color: var(--texto-suave);
+  opacity: 0.6;
+}
+
+.modal-input-wrapper input:focus {
+  border-color: var(--acento-claro);
+  box-shadow: 0 0 0 3px rgba(142, 224, 226, 0.25);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.modal-btn {
+  padding: 0.6rem 1.25rem;
+  font-size: 0.9rem;
+  font-family: var(--fonte-display);
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.12s ease;
+  min-width: 100px;
+}
+
+.modal-btn:active {
+  scale: 0.96;
+}
+
+.modal-cancel {
+  background: transparent;
+  color: var(--texto-suave);
+  border: 1px solid var(--borda-suave);
+}
+
+.modal-cancel:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--texto);
+}
+
+.modal-confirm {
+  background: linear-gradient(180deg, #35999a, #2c7a7b);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(44, 122, 123, 0.4);
+}
+
+.modal-confirm:hover {
+  background: #246061;
+}
+
+/* Mobile modal adjustments */
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .modal-content {
+    padding: 1.5rem;
+    border-radius: 12px;
+    max-height: 85vh;
+  }
+
+  .modal-content h3 {
+    font-size: 1.1rem;
+  }
+
+  .modal-content p {
+    font-size: 0.9rem;
+  }
+
+  .modal-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 0.5rem 1rem;
+  }
 }
