@@ -3,6 +3,7 @@ import { ResultadoGiro, Wheel } from "./wheel.js"
 import { BANCOS_PERGUNTAS, TipoPergunta } from "./levels.js"
 import { audio } from "./audio.js"
 import { pedirPergunta } from "./api.js"
+import { modal } from "./modal.js"
 
 const PALETA = Wheel.PALETA_CORES
 
@@ -328,23 +329,26 @@ export class Menu {
     if (configAtual.participantes.length >= Menu.MAX_PARTICIPANTES) return
     if (configAtual.participantes.some((p) => p.nome === emoji)) return
 
-    const displayName = window.prompt(
-      `Nome do jogador para ${emoji} (opcional, apenas para legenda):`,
-      ""
-    )
+    modal
+      .open(
+        "Nome do Jogador",
+        `Digite um nome para ${emoji} (opcional, apenas para a legenda ao lado da roleta).`,
+        "Nome opcional"
+      )
+      .then((displayName) => {
+        const usadas = new Set(configAtual.participantes.map((p) => p.cor))
+        const cor = PALETA.find((c) => !usadas.has(c))
 
-    const usadas = new Set(configAtual.participantes.map((p) => p.cor))
-    const cor = PALETA.find((c) => !usadas.has(c))
+        const novoParticipante: Participante = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          nome: emoji,
+          displayName: displayName || undefined,
+          cor,
+        }
+        const participantes = [...configAtual.participantes, novoParticipante]
 
-    const novoParticipante: Participante = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      nome: emoji,
-      displayName: displayName?.trim() || undefined,
-      cor,
-    }
-    const participantes = [...configAtual.participantes, novoParticipante]
-
-    this.salvarConfig({ ...configAtual, participantes })
+        this.salvarConfig({ ...configAtual, participantes })
+      })
   }
 
   private iniciarJogo(): void {
