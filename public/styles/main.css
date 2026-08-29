@@ -463,6 +463,36 @@ header p {
   border-radius: 999px;
 }
 
+.roleta-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Legenda dos participantes ao lado da roleta */
+.legenda-participantes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: max(12px, 0.8rem);
+  font-weight: 500;
+  color: var(--texto);
+  min-height: 1.5em;
+}
+
+.legenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--borda-suave);
+}
+
 /* Aro de carnaval: lâmpadas que piscam durante o giro */
 .aro-luzes {
   position: absolute;

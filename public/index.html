@@ -89,12 +89,15 @@
       <p id="contador-rodadas" class="contador-rodadas" role="status">Rodada 1</p>
       <button id="btn-som" class="btn-som" aria-label="Ativar som" aria-pressed="true">🔊</button>
     </div>
-    <button id="btn-roleta" class="roleta-wrapper" aria-label="Girar a roleta para a próxima rodada">
-      <span class="aro-luzes" aria-hidden="true"></span>
-      <span id="roda"></span>
-      <span id="agulha" aria-hidden="true"><span class="agulha-corpo"></span></span>
-      <span class="pino-central" aria-hidden="true"></span>
-    </button>
+    <div class="roleta-container">
+      <button id="btn-roleta" class="roleta-wrapper" aria-label="Girar a roleta para a próxima rodada">
+        <span class="aro-luzes" aria-hidden="true"></span>
+        <span id="roda"></span>
+        <span id="agulha" aria-hidden="true"><span class="agulha-corpo"></span></span>
+        <span class="pino-central" aria-hidden="true"></span>
+      </button>
+      <div id="legenda-participantes" class="legenda-participantes" aria-label="Legenda dos jogadores"></div>
+    </div>
     <p class="dica-roleta">toque na roleta para a próxima rodada</p>
     <p id="resultado" class="resultado" role="status"></p>
     <div id="escolha-modo" class="escolha-modo" style="display:none;">

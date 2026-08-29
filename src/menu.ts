@@ -151,7 +151,7 @@ export class Menu {
       lista.innerHTML = participantes
         .map(
           (p) =>
-            `<div class="participante-item" data-id="${p.id}" data-cor="${p.cor ?? ""}">
+            `<div class="participante-item" data-id="${p.id}" data-cor="${p.cor ?? ""}" data-display-name="${p.displayName ?? ""}">
                  <span class="chip-cor" style="background:${p.cor ?? "#999"}" aria-hidden="true"></span>
                  <span class="participante-emoji">${p.nome}</span>
                  <button class="remover-participante" data-id="${p.id}" aria-label="Remover jogador ${p.nome}">×</button>
@@ -326,16 +326,20 @@ export class Menu {
     }
 
     if (configAtual.participantes.length >= Menu.MAX_PARTICIPANTES) return
-    // Sem duplicatas: cada emoji e um jogador unico
     if (configAtual.participantes.some((p) => p.nome === emoji)) return
 
-    // Cor fixa de fatia: primeira cor livre da paleta
+    const displayName = window.prompt(
+      `Nome do jogador para ${emoji} (opcional, apenas para legenda):`,
+      ""
+    )
+
     const usadas = new Set(configAtual.participantes.map((p) => p.cor))
     const cor = PALETA.find((c) => !usadas.has(c))
 
     const novoParticipante: Participante = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       nome: emoji,
+      displayName: displayName?.trim() || undefined,
       cor,
     }
     const participantes = [...configAtual.participantes, novoParticipante]
@@ -432,6 +436,10 @@ export class Menu {
     if (escolha) escolha.style.display = 'none'
     this.escolhaPendente = null
 
+    // Limpar legenda
+    const legenda = document.getElementById('legenda-participantes')
+    if (legenda) legenda.innerHTML = ''
+
     // Mostrar menu e devolver o foco para um elemento visivel
     const menu = document.getElementById('menu-principal')
     if (menu) menu.style.display = ''
@@ -470,7 +478,8 @@ export class Menu {
       const idAttr = item.getAttribute('data-id')
       const id = idAttr || Date.now().toString()
       const cor = item.getAttribute('data-cor') || undefined
-      return cor ? { id, nome, cor } : { id, nome }
+      const displayName = item.getAttribute('data-display-name') || undefined
+      return cor || displayName ? { id, nome, cor, displayName: displayName || undefined } : { id, nome }
     })
   }
 
@@ -484,6 +493,24 @@ export class Menu {
       participantes,
       true // respeitarReducedMotion
     )
+    this.renderizarLegenda(participantes)
+  }
+
+  private renderizarLegenda(participantes: Participante[]): void {
+    const container = document.getElementById('legenda-participantes')
+    if (!container) return
+
+    if (participantes.length === 0) {
+      container.innerHTML = ''
+      return
+    }
+
+    container.innerHTML = participantes
+      .map((p) => {
+        const nome = p.displayName ? `${p.displayName} ${p.nome}` : p.nome
+        return `<span class="legenda-item" style="color:${p.cor || '#999'}">${nome}</span>`
+      })
+      .join(' &nbsp;|&nbsp; ')
   }
 
   private configAtual: ConfigJogo = {
@@ -774,6 +801,7 @@ export class Menu {
     }
 
     this.wheel.girar(participantes)
+    this.renderizarLegenda(participantes)
   }
 
   private async handleReroll(): Promise<void> {

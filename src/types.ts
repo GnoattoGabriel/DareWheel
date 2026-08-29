@@ -5,6 +5,7 @@ export enum NivelPicancia { SFW = "sfw", MODERADO = "moderado", NSFW = "nsfw" }
 export interface Participante {
   id: string
   nome: string
+  displayName?: string
   cor?: string
 }
 
