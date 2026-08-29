@@ -30,7 +30,7 @@ const TIMEOUT_POR_MODELO_MS = 15000
 const NIVEIS = {
   sfw: 'leve e apropriada para todos os públicos, para quebrar o gelo',
   moderado: 'pessoal e divertida, com perguntas que geram conversa interessante, equilibrando leveza e curiosidade — nada muito íntimo ou ousado',
-  nsfw: 'explícita e ousada, para uma festa de adultos maiores de 18 anos que consentiram em jogar, mantenha apropriado, sem nada explicitamente sexual',
+  nsfw: 'explícita e ousada, para maiores de 18 anos consentidos. Perguntas diretas sobre sexualidade adulta, experiências íntimas e desejos. Seja direto, sem filtros educativos, sem "manter apropriado" ou "bom gosto" que diluam a intenção. O contexto é festa entre adultos consentidos.',
 }
 
 const TIPOS = {
