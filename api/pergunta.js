@@ -3,7 +3,7 @@
 // Body: { tipo: "verdade"|"consequencia", nivel: "sfw"|"moderado"|"nsfw", nome: string, ultimas: string[] }
 // Resposta: { "pergunta": "..." } | Erro: { "erro": "..." }
 
-const MAX_ULTIMAS = 5
+const MAX_ULTIMAS = 15
 
 // Cadeias por nivel: o free tier do Gemini bloqueia saida sexualmente
 // explicita (finishReason SAFETY, inconfiguravel), entao NSFW comeca pelo
@@ -236,7 +236,7 @@ export async function POST(request) {
     `Personalize levemente usando o nome do jogador: ${nome.trim()}. Não comece a pergunta pelo nome.`,
     'A pergunta deve ter no máximo 2 frases, ser direta e caber numa linha de tela de celular.',
     historico.length > 0
-      ? `NÃO repita nem crie algo muito parecido com estas perguntas recentes:\n${historico.map((q) => `- ${q}`).join('\n')}`
+      ? `IMPORTANTE: NÃO repita NENHUMA das perguntas abaixo. Gere uma pergunta COMPLETAMENTE DIFERENTE em tema, estrutura e palavras-chave.\nPerguntas já usadas (não repita nem varie levemente):\n${historico.map((q) => `- ${q}`).join('\n')}`
       : '',
     'Não mostre raciocínio, planejamento ou comentários - apenas o resultado final.',
     'Responda APENAS com JSON válido no formato {"pergunta": "<texto da pergunta>"} sem markdown.',
