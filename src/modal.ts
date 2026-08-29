@@ -2,6 +2,9 @@ export class Modal {
   private overlay: HTMLElement
   private isOpen: boolean = false
   private resolveFn: ((value: string | null) => void) | null = null
+  private resolveConfirm: ((value: boolean) => void) | null = null
+  private inputEl: HTMLInputElement
+  private inputWrapper: HTMLElement
 
   constructor() {
     this.overlay = document.createElement('div')
@@ -20,21 +23,36 @@ export class Modal {
       </div>`
     document.body.appendChild(this.overlay)
 
+    this.inputEl = this.overlay.querySelector('#modal-input') as HTMLInputElement
+    this.inputWrapper = this.overlay.querySelector('.modal-input-wrapper') as HTMLElement
+
     this.overlay.querySelector('.modal-cancel')?.addEventListener('click', () => this.fechar(null))
     this.overlay.querySelector('.modal-confirm')?.addEventListener('click', () => {
-      const input = this.overlay.querySelector('#modal-input') as HTMLInputElement | null
-      this.fechar(input?.value?.trim() || null)
+      if (this.resolveConfirm !== null) {
+        this.fecharConfirm(true)
+      } else {
+        const input = this.overlay.querySelector('#modal-input') as HTMLInputElement | null
+        this.fechar(input?.value?.trim() || null)
+      }
     })
 
     this.overlay.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).classList.contains('modal-overlay')) {
-        this.fechar(null)
+        if (this.resolveConfirm !== null) {
+          this.fecharConfirm(false)
+        } else {
+          this.fechar(null)
+        }
       }
     })
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isOpen) {
-        this.fechar(null)
+        if (this.resolveConfirm !== null) {
+          this.fecharConfirm(false)
+        } else {
+          this.fechar(null)
+        }
       }
     })
   }
@@ -50,25 +68,59 @@ export class Modal {
     }
   }
 
+  private fecharConfirm(valor: boolean): void {
+    if (!this.isOpen) return
+    this.overlay.style.display = 'none'
+    this.isOpen = false
+    document.body.style.overflow = ''
+    if (this.resolveConfirm) {
+      this.resolveConfirm(valor)
+      this.resolveConfirm = null
+    }
+  }
+
   open(titulo: string, mensagem: string, placeholder: string = 'Nome opcional'): Promise<string | null> {
     return new Promise((resolve) => {
       this.resolveFn = resolve
+      this.resolveConfirm = null
 
       const titleEl = this.overlay.querySelector('#modal-title') as HTMLElement
       const messageEl = this.overlay.querySelector('#modal-message') as HTMLElement
-      const inputEl = this.overlay.querySelector('#modal-input') as HTMLInputElement
 
       titleEl.textContent = titulo
       messageEl.textContent = mensagem
-      inputEl.placeholder = placeholder
-      inputEl.value = ''
+      this.inputEl.placeholder = placeholder
+      this.inputEl.value = ''
+      this.inputWrapper.style.display = 'block'
 
       this.overlay.style.display = 'flex'
       this.isOpen = true
       document.body.style.overflow = 'hidden'
 
       requestAnimationFrame(() => {
-        inputEl.focus()
+        this.inputEl.focus()
+      })
+    })
+  }
+
+  confirm(titulo: string, mensagem: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.resolveConfirm = resolve
+      this.resolveFn = null
+
+      const titleEl = this.overlay.querySelector('#modal-title') as HTMLElement
+      const messageEl = this.overlay.querySelector('#modal-message') as HTMLElement
+
+      titleEl.textContent = titulo
+      messageEl.textContent = mensagem
+      this.inputWrapper.style.display = 'none'
+
+      this.overlay.style.display = 'flex'
+      this.isOpen = true
+      document.body.style.overflow = 'hidden'
+
+      requestAnimationFrame(() => {
+        ;(this.overlay.querySelector('.modal-confirm') as HTMLElement)?.focus()
       })
     })
   }

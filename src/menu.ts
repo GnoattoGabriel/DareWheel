@@ -351,7 +351,7 @@ export class Menu {
       })
   }
 
-  private iniciarJogo(): void {
+  private async iniciarJogo(): Promise<void> {
     const config = this.obterConfig()
     if (!config || config.participantes.length < 2) {
       alert("Adicione pelo menos 2 participantes para iniciar o jogo!")
@@ -360,9 +360,9 @@ export class Menu {
 
     // Verificar idade para modo NSFW
     if (config.nivel === NivelPicancia.NSFW) {
-      const confirmado = window.confirm(
-        "Você tem 18 anos ou mais? Este modo contém perguntas explícitas.\n\n" +
-        "Ao concordar, você declara ter a idade mínima permitida."
+      const confirmado = await modal.confirm(
+        "Confirmação de Idade",
+        "Você tem 18 anos ou mais? Este modo contém perguntas explícitas para maiores de 18 anos.\n\nAo confirmar, você declara ter a idade mínima permitida."
       )
       if (!confirmado) {
         alert("Jogo não iniciado. Selecione outro nível de picância.")
