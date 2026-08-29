@@ -657,7 +657,7 @@ export class Menu {
       nome,
       tipo,
       nivel,
-      ultimas: [...this.perguntasUsadas],
+      ultimas: [...this.perguntasUsadas].slice(-15),
     })
     this.perguntasUsadas.add(pergunta)
     return pergunta
