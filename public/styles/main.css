@@ -91,6 +91,7 @@ header p {
   margin-bottom: 1.25rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   backdrop-filter: blur(6px);
+  text-align: center;
 }
 
 /* Toggles */
