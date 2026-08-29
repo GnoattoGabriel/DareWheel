@@ -26,6 +26,7 @@ export class Menu {
   private escolhaPendente: Participante | null = null
   private ultimoTipo: "verdade" | "consequencia" = "verdade"
   private perguntasUsadas: Set<string> = new Set()
+  private rodadaAtual: number = 1
 
   constructor() {
     this.inicializar()
@@ -574,11 +575,12 @@ export class Menu {
       this.exibirCarregando()
       try {
         this.ultimoTipo = tipo
-        const pergunta = await this.gerarPerguntaAPI(boca.nome, tipo, this.configAtual.nivel)
+        const pergunta = await this.gerarPergunta(boca.nome, tipo, this.configAtual.nivel)
         this.exibirPergunta(pergunta, this.configAtual)
       } catch (erro) {
         console.error("Erro ao gerar pergunta", erro)
-        this.exibirPerguntaFallback(boca, this.configAtual)
+        const fallback = this.obterPerguntaFallback(boca.nome, tipo, this.configAtual.nivel)
+        this.exibirPergunta(fallback, this.configAtual)
       }
     }
 
@@ -642,11 +644,12 @@ export class Menu {
     this.exibirCarregando()
 
     try {
-      const pergunta = await this.gerarPerguntaAPI(vencedor.nome, tipo, config.nivel)
+      const pergunta = await this.gerarPergunta(vencedor.nome, tipo, config.nivel)
       this.exibirPergunta(pergunta, config)
     } catch (erro) {
       console.error("Erro ao gerar pergunta", erro)
-      this.exibirPerguntaFallback(vencedor, config)
+      const fallback = this.obterPerguntaFallback(vencedor.nome, tipo, config.nivel)
+      this.exibirPergunta(fallback, config)
     }
   }
 
@@ -719,6 +722,57 @@ export class Menu {
   private atualizarContadorRodadas(rodada: number): void {
     const contador = document.getElementById('contador-rodadas')
     if (contador) contador.textContent = `Rodada ${rodada}`
+  }
+
+  private getRodadaAtual(): number {
+    const estado = localStorage.getItem(this.estadoKey)
+    if (estado) {
+      try {
+        const parsed = JSON.parse(estado) as Partial<EstadoJogo>
+        if (typeof parsed.rodadaAtual === 'number') {
+          // O valor armazenado é a próxima rodada (incrementado após cada giro).
+          // Para exibição e lógica de padrão, usamos o número da rodada atual (armazenado - 1).
+          this.rodadaAtual = Math.max(1, parsed.rodadaAtual - 1)
+          return this.rodadaAtual
+        }
+      } catch {
+        // ignora erro
+      }
+    }
+    return this.rodadaAtual
+  }
+
+  private deveUsarBanco(): boolean {
+    const rodada = this.getRodadaAtual()
+    if (rodada < 20) {
+      return false
+    }
+    const posicao = (rodada - 20) % 3
+    return posicao === 0 || posicao === 1
+  }
+
+  private async gerarPergunta(nome: string, tipo: "verdade" | "consequencia", nivel: NivelPicancia): Promise<string> {
+    if (this.deveUsarBanco()) {
+      const pergunta = this.selecionarPerguntaBanco(tipo, nivel)
+      if (pergunta) {
+        this.perguntasUsadas.add(pergunta)
+        return pergunta
+      }
+    }
+    try {
+      const pergunta = await this.gerarPerguntaAPI(nome, tipo, nivel)
+      return pergunta
+    } catch (erro) {
+      console.error("Erro ao gerar pergunta via API, caindo no banco", erro)
+      const fallback = this.selecionarPerguntaBanco(tipo, nivel)
+      if (fallback) {
+        this.perguntasUsadas.add(fallback)
+        return fallback
+      }
+      return tipo === "verdade"
+        ? "Qual a qualidade que você mais valoriza em um amigo?"
+        : "Faça 10 polichinelos agora!"
+    }
   }
 
   private exibirPergunta(pergunta: string, config: ConfigJogo): void {
@@ -821,11 +875,12 @@ export class Menu {
     // Gerar nova pergunta usando o mesmo tipo da rodada atual
     this.exibirCarregando()
     try {
-      const pergunta = await this.gerarPerguntaAPI(this.wheelVencedor.nome, this.ultimoTipo, config.nivel)
+      const pergunta = await this.gerarPergunta(this.wheelVencedor.nome, this.ultimoTipo, config.nivel)
       this.exibirPergunta(pergunta, config)
     } catch (erro) {
       console.error("Erro ao reroll pergunta", erro)
-      this.exibirPerguntaFallback(this.wheelVencedor, config)
+      const fallback = this.obterPerguntaFallback(this.wheelVencedor.nome, this.ultimoTipo, config.nivel)
+      this.exibirPergunta(fallback, config)
     }
   }
 
