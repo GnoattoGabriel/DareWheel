@@ -315,7 +315,7 @@ header p {
 .btn-reroll {
   background: linear-gradient(180deg, #389a3c, #2e7d32);
   color: #fff;
-  width: 100%;
+  width: 150%;
   max-width: 220px;
   display: none; /* Hidden by default, shown when reroll available */
   margin-top: 1rem;

@@ -705,7 +705,7 @@ export class Menu {
     // Linha 1: quem responde (+ streak); linha 2: quem pergunta
     const fogo = streak >= 2 ? ` 🔥×${streak}` : ""
     const linha1 = document.createElement('strong')
-    linha1.textContent = `É a vez de ${boca.nome} perguntar:!${fogo}`
+    linha1.textContent = `É a vez de ${boca.displayName} perguntar:!${fogo}`
     const linha2 = document.createElement('span')
     linha2.className = 'resultado-papel'
     linha2.textContent = `${bunda.nome} faz a pergunta`
