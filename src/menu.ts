@@ -515,7 +515,7 @@ export class Menu {
         const nome = p.displayName ? `${p.displayName} ${p.nome}` : p.nome
         return `<span class="legenda-item" style="color:${p.cor || '#999'}">${nome}</span>`
       })
-      .join(' &nbsp;|&nbsp; ')
+      .join('')
   }
 
   private configAtual: ConfigJogo = {
@@ -601,7 +601,7 @@ export class Menu {
       return
     }
 
-    texto.textContent = `Para ${vencedor.nome}: verdade ou desafio?`
+    texto.textContent = `Para ${vencedor.displayName ? `${vencedor.displayName} ${vencedor.nome}` : vencedor.nome}: verdade ou desafio?`
     this.definirBotoesEscolha(true)
     container.style.display = 'block'
   }
@@ -704,11 +704,13 @@ export class Menu {
 
     // Linha 1: quem responde (+ streak); linha 2: quem pergunta
     const fogo = streak >= 2 ? ` 🔥×${streak}` : ""
+    const rotuloBoca = boca.displayName ? `${boca.displayName} ${boca.nome}` : boca.nome
+    const rotuloBunda = bunda.displayName ? `${bunda.displayName} ${bunda.nome}` : bunda.nome
     const linha1 = document.createElement('strong')
-    linha1.textContent = `É a vez de ${boca.displayName} perguntar:!${fogo}`
+    linha1.textContent = `É a vez de ${rotuloBoca}${fogo}`
     const linha2 = document.createElement('span')
     linha2.className = 'resultado-papel'
-    linha2.textContent = `${bunda.nome} faz a pergunta`
+    linha2.textContent = `${rotuloBunda} faz a pergunta`
 
     resultadoElem.replaceChildren(linha1, document.createElement('br'), linha2)
     resultadoElem.style.display = 'block'

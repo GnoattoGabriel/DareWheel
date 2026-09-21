@@ -59,9 +59,14 @@ export class Modal {
 
   private fechar(valor: string | null): void {
     if (!this.isOpen) return
-    this.overlay.style.display = 'none'
     this.isOpen = false
     document.body.style.overflow = ''
+    this.overlay.classList.remove('visivel')
+    window.setTimeout(() => {
+      if (this.isOpen) return
+      this.overlay.classList.remove('aberto')
+      this.overlay.style.display = 'none'
+    }, 200)
     if (this.resolveFn) {
       this.resolveFn(valor)
       this.resolveFn = null
@@ -70,9 +75,14 @@ export class Modal {
 
   private fecharConfirm(valor: boolean): void {
     if (!this.isOpen) return
-    this.overlay.style.display = 'none'
     this.isOpen = false
     document.body.style.overflow = ''
+    this.overlay.classList.remove('visivel')
+    window.setTimeout(() => {
+      if (this.isOpen) return
+      this.overlay.classList.remove('aberto')
+      this.overlay.style.display = 'none'
+    }, 200)
     if (this.resolveConfirm) {
       this.resolveConfirm(valor)
       this.resolveConfirm = null
@@ -94,10 +104,14 @@ export class Modal {
       this.inputWrapper.style.display = 'block'
 
       this.overlay.style.display = 'flex'
+      this.overlay.classList.add('aberto')
       this.isOpen = true
       document.body.style.overflow = 'hidden'
 
       requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          this.overlay.classList.add('visivel')
+        })
         this.inputEl.focus()
       })
     })
@@ -116,10 +130,14 @@ export class Modal {
       this.inputWrapper.style.display = 'none'
 
       this.overlay.style.display = 'flex'
+      this.overlay.classList.add('aberto')
       this.isOpen = true
       document.body.style.overflow = 'hidden'
 
       requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          this.overlay.classList.add('visivel')
+        })
         ;(this.overlay.querySelector('.modal-confirm') as HTMLElement)?.focus()
       })
     })
