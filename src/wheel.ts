@@ -70,6 +70,21 @@ export class Wheel {
     this.respeitarReducedMotion = respeitarReducedMotion
 
     this.inicializar()
+    // A #agulha persiste no DOM entre jogos: reaproveita a rotacao
+    // acumulada no style inline para o proximo giro partir para frente.
+    // Sem isso o 1o giro do jogo novo voltava de ~5000deg para ~1500deg
+    // (giro reverso visivel). Le o valor total, nao normalizado.
+    this.rotacaoAtual = Wheel.lerRotacaoInline(this.agulhaElement)
+  }
+
+  /**
+   * Le o rotate(deg) acumulado no style inline da agulha.
+   * Pagina recem-carregada = sem inline = 0.
+   */
+  private static lerRotacaoInline(elemento: HTMLElement): number {
+    const m = /rotate\((-?[\d.]+)deg\)/.exec(elemento.style.transform)
+    const graus = m ? Number(m[1]) : 0
+    return Number.isFinite(graus) ? graus : 0
   }
 
   /**
@@ -107,6 +122,13 @@ export class Wheel {
       if (!this.labelsElement.parentElement) {
         pai.appendChild(this.labelsElement)
       }
+    }
+
+    // Pinta as fatias ja na construcao: sem isso o Wheel novo comeca com
+    // fatias=[] e o monitor de ticks usa divisor obsoleto no 1o giro
+    // (giro silencioso).
+    if (this.ordemExibicao.length >= 2) {
+      this.atualizarVisual()
     }
   }
 
@@ -341,7 +363,11 @@ export class Wheel {
     this.rotacaoAtual += delta
 
     this.girando = true
-    this.rodaElement.closest('.roleta-wrapper')?.classList.add('girando')
+    const wrapper = this.rodaElement.closest('.roleta-wrapper')
+    wrapper?.classList.add('girando')
+    // Feedback visivel de "girando": sem isso o 2o clique caia no guard
+    // silencioso e parecia que "nem roda".
+    if (wrapper instanceof HTMLButtonElement) wrapper.disabled = true
 
     // Monitor rAF: ticks ao cruzar fatias + wobble na fase lenta
     this.iniciarMonitorGiro(this.geracao)
@@ -353,7 +379,9 @@ export class Wheel {
       if (concluido) return
       concluido = true
       this.girando = false
-      this.rodaElement.closest('.roleta-wrapper')?.classList.remove('girando')
+      const alvo = this.rodaElement.closest('.roleta-wrapper')
+      alvo?.classList.remove('girando')
+      if (alvo instanceof HTMLButtonElement) alvo.disabled = false
       this.calcularResultado()
     }
     this.agulhaElement.addEventListener("transitionend", concluir, { once: true })
@@ -374,7 +402,6 @@ export class Wheel {
    * apenas na fase lenta final.
    */
   private iniciarMonitorGiro(geracao: number): void {
-    const tamanhoFatia = 360 / Math.max(1, this.fatias.length)
     const corpo = this.agulhaElement.querySelector('.agulha-corpo')
     let ultimaFatia: number | null = null
     let wobbleAtivo = false
@@ -386,6 +413,10 @@ export class Wheel {
       if (matriz && matriz !== "none") {
         const partes = matriz.slice(7, -1).split(",").map(Number)
         const angulo = (Math.atan2(partes[1], partes[0]) * 180) / Math.PI
+        // Divisor lido a cada frame: as fatias so existem depois do pulso
+        // de embaralhamento (~175ms); valor capturado no inicio do giro
+        // ficava obsoleto o giro inteiro.
+        const tamanhoFatia = 360 / Math.max(1, this.fatias.length)
         const fatiaAtual = Math.floor((((angulo % 360) + 360) % 360) / tamanhoFatia)
 
         if (ultimaFatia !== null && fatiaAtual !== ultimaFatia) {
