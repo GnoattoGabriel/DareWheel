@@ -197,16 +197,16 @@ header p {
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.08);
   cursor: pointer;
-  transition: background-color 0.15s ease, opacity 0.15s ease, scale 0.15s ease;
+  transition: background-color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
 }
 
 .emoji-opcao:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.2);
-  scale: 1.08;
+  transform: scale(1.08);
 }
 
 .emoji-opcao:active:not(:disabled) {
-  scale: 0.94;
+  transform: scale(0.94);
 }
 
 .emoji-opcao:disabled {
@@ -289,7 +289,7 @@ header p {
 
 .btn-iniciar:active,
 .btn-reroll:active:not(:disabled) {
-  scale: 0.96;
+  transform: scale(0.96);
 }
 
 .btn-iniciar {
@@ -315,8 +315,10 @@ header p {
 .btn-reroll {
   background: linear-gradient(180deg, #389a3c, #2e7d32);
   color: #fff;
-  width: 150%;
-  max-width: 220px;
+  width: 100%;
+  max-width: 260px;
+  font-size: 1.1rem;
+  padding: 0.9rem 1.75rem;
   display: none; /* Hidden by default, shown when reroll available */
   margin-top: 1rem;
   margin-inline: auto;
@@ -333,15 +335,17 @@ header p {
 
 @media (max-width: 640px) {
   .btn-reroll {
-    font-size: 0.85rem;
-    padding: 0.6rem 1.2rem;
+    font-size: 1.05rem;
+    padding: 0.85rem 1.5rem;
   }
 }
 
 /* Game Area */
 #area-jogo {
   display: none;
-  margin-top: 2rem;
+  max-width: 960px;
+  width: calc(100% - 2rem);
+  margin: 2rem auto 0;
   padding: 1.5rem;
   background: var(--superficie);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -404,7 +408,8 @@ header p {
 
 @media (max-width: 640px) {
   #area-jogo {
-    margin-top: 1rem;
+    width: calc(100% - 1rem);
+    margin: 1rem auto 0;
     padding: 1rem;
   }
 }
@@ -425,8 +430,12 @@ header p {
 }
 
 .roleta-wrapper:focus-visible {
-  outline: 2px solid #2c7a7b;
+  outline: 2px solid var(--acento-claro);
   outline-offset: 4px;
+}
+
+.roleta-wrapper:disabled {
+  cursor: wait;
 }
 
 #roda {
@@ -439,7 +448,7 @@ header p {
     0 10px 30px rgba(0, 0, 0, 0.55),
     inset 0 0 14px rgba(0, 0, 0, 0.35),
     inset 0 2px 6px rgba(255, 255, 255, 0.25);
-  background: conic-gradient(#ccc 0deg 360deg);
+  background: var(--fundo-2);
   transition: box-shadow 0.2s ease;
 }
 
@@ -511,6 +520,12 @@ header p {
   animation: luzes-piscando 0.35s steps(2) infinite;
 }
 
+@supports not ((mask-image: radial-gradient(circle, #000, #000)) or (-webkit-mask-image: radial-gradient(circle, #000, #000))) {
+  .aro-luzes {
+    display: none;
+  }
+}
+
 @keyframes luzes-piscando {
   0% {
     filter: brightness(1.6);
@@ -550,17 +565,17 @@ header p {
   0% {
     opacity: 1;
     filter: blur(0);
-    scale: 1;
+    transform: scale(1);
   }
   50% {
     opacity: 0.45;
     filter: blur(3px);
-    scale: 0.985;
+    transform: scale(0.985);
   }
   100% {
     opacity: 1;
     filter: blur(0);
-    scale: 1;
+    transform: scale(1);
   }
 }
 
@@ -632,10 +647,10 @@ header p {
 }
 
 @keyframes agulha-wobble {
-  0% { rotate: 0deg }
-  40% { rotate: -2.5deg }
-  75% { rotate: 1.8deg }
-  100% { rotate: 0deg }
+  0% { transform: rotate(0deg) }
+  40% { transform: rotate(-2.5deg) }
+  75% { transform: rotate(1.8deg) }
+  100% { transform: rotate(0deg) }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -717,9 +732,9 @@ header p {
 }
 
 @keyframes resultado-pop {
-  0% { scale: 0.75; opacity: 0 }
-  65% { scale: 1.06; opacity: 1 }
-  100% { scale: 1; opacity: 1 }
+  0% { transform: scale(0.75); opacity: 0 }
+  65% { transform: scale(1.06); opacity: 1 }
+  100% { transform: scale(1); opacity: 1 }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -742,24 +757,40 @@ header p {
   justify-content: center;
 }
 
+.pergunta:empty {
+  display: none;
+  min-height: 0;
+  margin-top: 0;
+}
+
 @media (max-width: 640px) {
   .pergunta {
-    min-height: 60px;
-    font-size: 1rem;
+    min-height: 72px;
+    font-size: 1.15rem;
   }
 }
 
 /* Question text */
 .pergunta p {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
   text-align: center;
-  line-height: 1.4;
-  font-size: 1.15rem;
+  line-height: 1.45;
+  font-size: 1.3rem;
   color: var(--texto);
+}
+
+@media (max-width: 640px) {
+  .pergunta p {
+    font-size: 1.2rem;
+  }
 }
 
 /* Estado de espera enquanto a API gera a pergunta */
 .pergunta-carregando {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-style: italic;
   color: var(--texto-suave);
   animation: carregando-pulso 1.2s ease-in-out infinite;
@@ -778,9 +809,9 @@ header p {
 
 /* Tag de origem - perguntas vindas do banco /bkp */
 .origem-banco {
-  display: block;
+  display: inline-block;
   width: fit-content;
-  margin: 0.6rem auto 0;
+  margin: 0;
   padding: 0.2rem 0.7rem;
   font-size: max(12px, 0.75rem);
   font-weight: 400;
@@ -793,19 +824,14 @@ header p {
 /* Mobile menu improvements */
 @media (max-width: 640px) {
   .toggle-group .toggles {
-    justify-content: flex-start;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-    scrollbar-width: none;
-  }
-
-  .toggle-group .toggles::-webkit-scrollbar {
-    display: none;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding-bottom: 0;
   }
 
   .toggles .modo-toggle,
   .toggles .nivel-toggle {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
     white-space: nowrap;
   }
 }
@@ -852,7 +878,7 @@ input:focus-visible {
 }
 
 .btn-escolha:active {
-  scale: 0.96;
+  transform: scale(0.96);
 }
 
 .btn-escolha-verdade {
@@ -901,7 +927,11 @@ input:focus-visible {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
-.modal-overlay[style*="flex"] .modal-content {
+.modal-overlay.aberto {
+  display: flex;
+}
+
+.modal-overlay.aberto.visivel .modal-content {
   transform: scale(1);
   opacity: 1;
 }
@@ -970,7 +1000,7 @@ input:focus-visible {
 }
 
 .modal-btn:active {
-  scale: 0.96;
+  transform: scale(0.96);
 }
 
 .modal-cancel {
