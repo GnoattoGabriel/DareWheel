@@ -754,8 +754,10 @@ export class Menu {
     if (rodada < 20) {
       return false
     }
+    // 1/3 banco (primeira do trio), 2/3 API - que ja alternam
+    // GPT/Gemini pela rodada no proxy
     const posicao = (rodada - 20) % 3
-    return posicao === 0 || posicao === 1
+    return posicao === 0
   }
 
   private async gerarPergunta(nome: string, tipo: "verdade" | "consequencia", nivel: NivelPicancia, rodada: number): Promise<string> {
