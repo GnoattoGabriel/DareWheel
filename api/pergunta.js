@@ -295,7 +295,7 @@ export async function POST(request) {
     tipo === 'consequencia' && nivel === 'nsfw' ? FREIO_DESAFIO_NSFW : '',
     tipo === 'consequencia' ? DESAFIO_SEM_CELULAR : '',
     'Não mencione nomes de pessoas na pergunta. Evite repetir perguntas ou desafios muito semelhantes.',
-    'Alterne entre: humor; curiosidades; histórias pessoais; relacionamentos; situações constrangedoras; criatividade; improvisação; interação entre jogadores; desafios individuais; desafios envolvendo todo o grupo.',
+    'Alterne entre: humor; curiosidades; histórias pessoais; relacionamentos; situações constrangedoras; criatividade; improvisação; interação entre jogadores',
     'Varie o início e a estrutura das frases a cada pergunta, em qualquer modo e nível; evite repetir o mesmo padrão (verdades: nem só "Qual foi...", nem só "Já..."; desafios: nem só "Faça..."); Não transforme todas as rodadas em perguntas sobre relacionamentos ou sexualidade, mesmo no modo NSFW.',
     'A pergunta deve ter no máximo 3 frases, ser direta.',
     historico.length > 0
