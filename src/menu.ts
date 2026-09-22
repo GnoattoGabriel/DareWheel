@@ -575,7 +575,9 @@ export class Menu {
       this.exibirCarregando()
       try {
         this.ultimoTipo = tipo
-        const pergunta = await this.gerarPergunta(boca.nome, tipo, this.configAtual.nivel)
+        // numeroRodada e o numero exato desta rodada (o estado no
+        // localStorage so e persistido ao final deste metodo)
+        const pergunta = await this.gerarPergunta(boca.nome, tipo, this.configAtual.nivel, numeroRodada)
         this.exibirPergunta(pergunta, this.configAtual)
       } catch (erro) {
         console.error("Erro ao gerar pergunta", erro)
@@ -644,7 +646,9 @@ export class Menu {
     this.exibirCarregando()
 
     try {
-      const pergunta = await this.gerarPergunta(vencedor.nome, tipo, config.nivel)
+      // Nesta altura o estado da rodada ja foi persistido, entao
+      // getRodadaAtual() devolve o numero exato desta rodada
+      const pergunta = await this.gerarPergunta(vencedor.nome, tipo, config.nivel, this.getRodadaAtual())
       this.exibirPergunta(pergunta, config)
     } catch (erro) {
       console.error("Erro ao gerar pergunta", erro)
@@ -653,7 +657,7 @@ export class Menu {
     }
   }
 
-  private async gerarPerguntaAPI(nome: string, tipo: "verdade" | "consequencia", nivel: NivelPicancia): Promise<string> {
+  private async gerarPerguntaAPI(nome: string, tipo: "verdade" | "consequencia", nivel: NivelPicancia, rodada: number): Promise<string> {
     // Proxy serverless na Vercel - qualquer falha propaga e o chamador
     // cai no banco /bkp. Perguntas da IA entram no historico anti-repeticao.
     const pergunta = await pedirPergunta({
@@ -661,6 +665,7 @@ export class Menu {
       tipo,
       nivel,
       ultimas: [...this.perguntasUsadas].slice(-15),
+      rodada,
     })
     this.perguntasUsadas.add(pergunta)
     return pergunta
@@ -753,7 +758,7 @@ export class Menu {
     return posicao === 0 || posicao === 1
   }
 
-  private async gerarPergunta(nome: string, tipo: "verdade" | "consequencia", nivel: NivelPicancia): Promise<string> {
+  private async gerarPergunta(nome: string, tipo: "verdade" | "consequencia", nivel: NivelPicancia, rodada: number): Promise<string> {
     if (this.deveUsarBanco()) {
       const pergunta = this.selecionarPerguntaBanco(tipo, nivel)
       if (pergunta) {
@@ -762,7 +767,7 @@ export class Menu {
       }
     }
     try {
-      const pergunta = await this.gerarPerguntaAPI(nome, tipo, nivel)
+      const pergunta = await this.gerarPerguntaAPI(nome, tipo, nivel, rodada)
       return pergunta
     } catch (erro) {
       console.error("Erro ao gerar pergunta via API, caindo no banco", erro)
@@ -875,9 +880,10 @@ export class Menu {
     if (!config || !this.wheelVencedor) return
 
     // Gerar nova pergunta usando o mesmo tipo da rodada atual
+    // (reroll mantem a rodada, logo o revezamento de modelos nao avanca)
     this.exibirCarregando()
     try {
-      const pergunta = await this.gerarPergunta(this.wheelVencedor.nome, this.ultimoTipo, config.nivel)
+      const pergunta = await this.gerarPergunta(this.wheelVencedor.nome, this.ultimoTipo, config.nivel, this.getRodadaAtual())
       this.exibirPergunta(pergunta, config)
     } catch (erro) {
       console.error("Erro ao reroll pergunta", erro)

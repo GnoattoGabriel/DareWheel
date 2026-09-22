@@ -9,6 +9,8 @@ export interface PedidoPergunta {
   nivel: string
   /** Ultimas perguntas exibidas, mais recentes por ultimo */
   ultimas: string[]
+  /** Numero da rodada atual (1-based) - define o revezamento de modelos */
+  rodada: number
 }
 
 const TIMEOUT_MS = 8000
@@ -26,6 +28,7 @@ export async function pedirPergunta(pedido: PedidoPergunta): Promise<string> {
         nivel: pedido.nivel,
         nome: pedido.nome,
         ultimas: pedido.ultimas.slice(-5),
+        rodada: pedido.rodada,
       }),
       signal: controller.signal,
     })

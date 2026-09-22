@@ -16,12 +16,24 @@ const CADEIA_PADRAO = [
 ]
 const CADEIA_NSFW = [
   { modelo: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b', provedor: 'groq' },
-  { modelo: 'nvidia/nemotron-3-ultra-550b-a55b:free', provedor: 'openrouter' },
   { modelo: process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest', provedor: 'gemini' },
+  { modelo: 'nvidia/nemotron-3-ultra-550b-a55b:free', provedor: 'openrouter' },
 ]
 
 function cadeiaParaNivel(nivel) {
   return nivel === 'nsfw' ? CADEIA_NSFW : CADEIA_PADRAO
+}
+
+/**
+ * Revezamento por rodada: as duas primeiras da cadeia (Groq e Gemini)
+ * alternam a primeira tentativa; o resto segue como fallback na ordem.
+ * Rodadas impares comecam no Groq, pares no Gemini.
+ */
+function ordenarPorRodada(cadeia, rodada) {
+  if (cadeia.length > 1 && rodada % 2 === 0) {
+    return [cadeia[1], cadeia[0], ...cadeia.slice(2)]
+  }
+  return cadeia
 }
 
 const ENDPOINT_GROQ = 'https://api.groq.com/openai/v1/chat/completions'
@@ -252,11 +264,13 @@ export async function POST(request) {
     return json(400, { erro: 'JSON inválido' })
   }
 
-  const { tipo, nivel, nome, ultimas } = corpo ?? {}
+  const { tipo, nivel, nome, ultimas, rodada } = corpo ?? {}
 
   if (!TIPOS[tipo] || !NIVEIS[nivel]) {
     return json(400, { erro: 'Campos obrigatórios ausentes ou inválidos: tipo, nivel' })
   }
+  // Rodada opcional (clientes antigos nao enviam): default 1 = comeca no Groq
+  const numeroRodada = Number.isInteger(rodada) && rodada >= 1 ? rodada : 1
   if (typeof nome !== 'string' || nome.trim().length === 0 || nome.length > 40) {
     return json(400, { erro: 'Campo nome inválido' })
   }
@@ -291,7 +305,10 @@ export async function POST(request) {
     .filter(Boolean)
     .join(' ')
 
-  for (const item of cadeiaParaNivel(nivel)) {
+  const cadeia = ordenarPorRodada(cadeiaParaNivel(nivel), numeroRodada)
+  console.log(`Rodada ${numeroRodada} (${nivel}/${tipo}): primeira tentativa ${cadeia[0].modelo} (${cadeia[0].provedor})`)
+
+  for (const item of cadeia) {
     const apiKey = item.provedor === 'gemini' ? chaveGemini : item.provedor === 'groq' ? chaveGroq : chaveOpenRouter
     if (!apiKey) continue // provedor sem chave configurada - proximo da cadeia
 
