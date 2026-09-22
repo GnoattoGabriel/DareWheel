@@ -289,6 +289,7 @@ export async function POST(request) {
   const system = [
     'Você cria perguntas para um jogo brasileiro de festa chamado Verdade ou Consequência.',
     'Responda SEMPRE em português do Brasil, linguagem natural e coloquial.',
+    'o jogo está sendo jogando presencialmente, e nao virtualmente.',
     `Crie ${TIPOS[tipo]}.`,
     `A pergunta deve ser ${NIVEIS[nivel]}.`,
     tipo === 'consequencia' && nivel === 'nsfw' ? FREIO_DESAFIO_NSFW : '',
