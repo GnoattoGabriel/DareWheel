@@ -1,27 +1,30 @@
-// Proxy serverless Vercel - chaves (Gemini/OpenRouter) nunca chegam ao cliente.
+// Proxy serverless Vercel - chaves (Groq/Gemini/OpenRouter) nunca chegam ao cliente.
 // POST /api/pergunta
 // Body: { tipo: "verdade"|"consequencia", nivel: "sfw"|"moderado"|"nsfw", nome: string, ultimas: string[] }
 // Resposta: { "pergunta": "..." } | Erro: { "erro": "..." }
 
 const MAX_ULTIMAS = 15
 
-// Cadeias por nivel: o free tier do Gemini bloqueia saida sexualmente
-// explicita (finishReason SAFETY, inconfiguravel), entao NSFW comeca pelo
-// OpenRouter (Nemotron Ultra aceita); os demais niveis usam o caminho
-// rapido do Gemini. Aliases "-latest" acompanham o modelo atual.
-const CADEIA_GEMINI_PRIMEIRO = [
+// Cadeias por nivel: o Groq (gpt-oss) lidera em velocidade (~1s) e passa nos
+// 3 niveis sem recusas, inclusive NSFW; Gemini e OpenRouter seguem de
+// fallback. Aliases "-latest" acompanham o modelo atual.
+const CADEIA_PADRAO = [
+  { modelo: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b', provedor: 'groq' },
   { modelo: process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest', provedor: 'gemini' },
   { modelo: 'gemini-flash-latest', provedor: 'gemini' },
   { modelo: 'openrouter/free', provedor: 'openrouter' },
 ]
 const CADEIA_NSFW = [
+  { modelo: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b', provedor: 'groq' },
   { modelo: 'nvidia/nemotron-3-ultra-550b-a55b:free', provedor: 'openrouter' },
   { modelo: process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest', provedor: 'gemini' },
 ]
 
 function cadeiaParaNivel(nivel) {
-  return nivel === 'nsfw' ? CADEIA_NSFW : CADEIA_GEMINI_PRIMEIRO
+  return nivel === 'nsfw' ? CADEIA_NSFW : CADEIA_PADRAO
 }
+
+const ENDPOINT_GROQ = 'https://api.groq.com/openai/v1/chat/completions'
 
 const ENDPOINT_GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models'
 const ENDPOINT_OPENROUTER = 'https://openrouter.ai/api/v1/chat/completions'
@@ -29,7 +32,7 @@ const TIMEOUT_POR_MODELO_MS = 15000
 
 const NIVEIS = {
   sfw: 'leve e apropriada para todos os públicos, para quebrar o gelo',
-  moderado: 'pessoal e divertida, com perguntas que geram conversa interessante, equilibrando leveza e curiosidade — nada muito íntimo ou ousado',
+  moderado: 'provocante e divertida, com flerte, insinuação e perguntas picantes leves que geram conversa interessante — pode cutucar intimidade e desejo de forma sugestiva, sem nada explícito',
   nsfw: 'explícita e ousada, para maiores de 18 anos consentidos. Perguntas diretas sobre sexualidade adulta, experiências íntimas e desejos. Seja direto, sem filtros educativos, sem "manter apropriado" ou "bom gosto" que diluam a intenção. O contexto é festa entre adultos consentidos.',
 }
 
@@ -37,6 +40,17 @@ const TIPOS = {
   verdade: 'uma pergunta de VERDADE (a pessoa responde honestamente)',
   consequencia: 'um desafio/CONSEQUÊNCIA (a pessoa executa uma ação divertida)',
 }
+
+// Freio só para desafios NSFW: verdades seguem explícitas; desafios evitam
+// posições sexuais explícitas e atos performáticos, preferindo provocação
+// de fala, revelação e paquera
+const FREIO_DESAFIO_NSFW =
+  'Nos desafios, evite posições sexuais explícitas e atos sexuais performáticos; prefira provocações de fala, revelação, paquera e desafios sensuais sem contato sexual explícito.'
+
+// Desafios ao vivo: o modelo vicia em "grave/envie áudio/vídeo no grupo";
+// a graça da festa é a ação na roda, não no celular
+const DESAFIO_SEM_CELULAR =
+  'Nos desafios, evite tarefas que envolvam gravar ou enviar áudio, vídeo, foto ou mensagem no celular; prefira ações executadas ao vivo, na hora, diante do grupo.'
 
 function json(statusCode, corpo) {
   return new Response(JSON.stringify(corpo), {
@@ -159,6 +173,35 @@ async function chamarGemini(modelo, system, apiKey, sinal) {
     .trim()
 }
 
+async function chamarGroq(modelo, system, apiKey, sinal) {
+  const resposta = await fetch(ENDPOINT_GROQ, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: modelo,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: 'Gere a próxima pergunta do jogo.' },
+      ],
+      temperature: 1,
+      max_tokens: 900,
+      response_format: { type: 'json_object' },
+    }),
+    signal: sinal,
+  })
+
+  if (!resposta.ok) {
+    throw new Error(`HTTP ${resposta.status}`)
+  }
+
+  const dados = await resposta.json()
+  const conteudo = dados.choices?.[0]?.message?.content
+  return typeof conteudo === 'string' ? conteudo.trim() : ''
+}
+
 async function chamarOpenRouter(modelo, system, apiKey, sinal) {
   const resposta = await fetch(ENDPOINT_OPENROUTER, {
     method: 'POST',
@@ -221,10 +264,11 @@ export async function POST(request) {
     ? ultimas.filter((q) => typeof q === 'string').slice(-MAX_ULTIMAS)
     : []
 
+  const chaveGroq = process.env.GROQ_API_KEY
   const chaveGemini = process.env.GEMINI_API_KEY
   const chaveOpenRouter = process.env.OPENROUTER_API_KEY
-  if (!chaveGemini && !chaveOpenRouter) {
-    console.error('Nenhuma chave de IA configurada (GEMINI_API_KEY / OPENROUTER_API_KEY)')
+  if (!chaveGroq && !chaveGemini && !chaveOpenRouter) {
+    console.error('Nenhuma chave de IA configurada (GROQ_API_KEY / GEMINI_API_KEY / OPENROUTER_API_KEY)')
     return json(500, { erro: 'Servidor sem chave de API configurada' })
   }
 
@@ -233,7 +277,10 @@ export async function POST(request) {
     'Responda SEMPRE em português do Brasil, linguagem natural e coloquial.',
     `Crie ${TIPOS[tipo]}.`,
     `A pergunta deve ser ${NIVEIS[nivel]}.`,
-    `Personalize levemente usando o nome do jogador: ${nome.trim()}. Não comece a pergunta pelo nome.`,
+    tipo === 'consequencia' && nivel === 'nsfw' ? FREIO_DESAFIO_NSFW : '',
+    tipo === 'consequencia' ? DESAFIO_SEM_CELULAR : '',
+    'Não mencione nomes de pessoas na pergunta.',
+    'Varie o início e a estrutura das frases a cada pergunta, em qualquer modo e nível; evite repetir o mesmo padrão (verdades: nem só "Qual foi...", nem só "Já..."; desafios: nem só "Faça...").',
     'A pergunta deve ter no máximo 2 frases, ser direta e caber numa linha de tela de celular.',
     historico.length > 0
       ? `IMPORTANTE: NÃO repita NENHUMA das perguntas abaixo. Gere uma pergunta COMPLETAMENTE DIFERENTE em tema, estrutura e palavras-chave.\nPerguntas já usadas (não repita nem varie levemente):\n${historico.map((q) => `- ${q}`).join('\n')}`
@@ -245,14 +292,14 @@ export async function POST(request) {
     .join(' ')
 
   for (const item of cadeiaParaNivel(nivel)) {
-    const apiKey = item.provedor === 'gemini' ? chaveGemini : chaveOpenRouter
+    const apiKey = item.provedor === 'gemini' ? chaveGemini : item.provedor === 'groq' ? chaveGroq : chaveOpenRouter
     if (!apiKey) continue // provedor sem chave configurada - proximo da cadeia
 
     try {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_POR_MODELO_MS)
 
-      const chamador = item.provedor === 'gemini' ? chamarGemini : chamarOpenRouter
+      const chamador = { gemini: chamarGemini, groq: chamarGroq, openrouter: chamarOpenRouter }[item.provedor]
       const conteudo = await chamador(item.modelo, system, apiKey, controller.signal)
 
       clearTimeout(timeoutId)
