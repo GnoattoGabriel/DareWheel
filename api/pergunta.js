@@ -44,8 +44,8 @@ const TIMEOUT_POR_MODELO_MS = 15000
 
 const NIVEIS = {
   sfw: 'Objetivo: leve, engraçado, sem constrangimento sério. Ideal para grupos que não se conhecem bem; Proibido: qualquer insinuação romântica/sexual, temas polêmicos, desafios físicos arriscados, Exemplos de verdade: preferências pessoais, curiosidades bobas, memórias engraçadas; Exemplos de desafio: imitar alguém, cantar um trecho, fazer uma careta, contar uma piada',
-  moderado: 'Objetivo: um pouco mais pessoal e ousado, pode incluir romance leve, opiniões e situações constrangedoras "de boa"; Proibido: conteúdo sexual explícito, humilhação pesada, exposição de segredos sérios; Exemplos de verdade: paqueras, momentos vergonhosos, opiniões sobre alguém do grupo (de forma respeitosa); Exemplos de desafio: mandar uma mensagem engraçada para alguém, dançar, trocar uma peça de roupa (acessório, não íntima), simular uma cena de novela',
-  nsfw: 'explícita e ousada, para maiores de 18 anos consentidos. Objetivo: mais picante, flertoso e adulto, mas ainda ADEQUADO para ser dito/feito em público; Pode incluir: perguntas sobre vida amorosa/sexual em termos gerais, tensão sexual entre os jogadores, desafios flertosos, humor adulto.',
+  moderado: 'Objetivo: um pouco mais pessoal e ousado, pode incluir romance leve, opiniões e situações constrangedoras "de boa"; Proibido: conteúdo sexual explícito, humilhação pesada, exposição de segredos sérios; Exemplos de verdade: paqueras, momentos vergonhosos, opiniões sobre alguém do grupo; Exemplos de desafio: mandar uma mensagem engraçada para alguém, dançar, simular uma cena de novela',
+  nsfw: 'explícita e ousada, para maiores de 18 anos consentidos. Objetivo: mais picante, flertoso e adulto, mas ainda ADEQUADO para ser dito/feito em público; Pode incluir: perguntas sobre vida amorosa/sexual em termos gerais, tensão sexual entre os jogadores, desafios flertosos (como chupar o dedo de alguem), trocar uma peça de roupa, humor adulto.',
 }
 
 const TIPOS = {
@@ -57,12 +57,12 @@ const TIPOS = {
 // posições sexuais explícitas e atos performáticos, preferindo provocação
 // de fala, revelação e paquera
 const FREIO_DESAFIO_NSFW =
-  'evite posições sexuais explícitas, prefira provocações de fala, revelação, paquera e desafios sensuais.'
+  'prefira provocações de fala, revelação, paquera e desafios sensuais. (limite seria algo como chupar o dedo da pessoa ao lado, trocar uma peça de roupa) '
 
 // Desafios ao vivo: o modelo vicia em "grave/envie áudio/vídeo no grupo";
 // a graça da festa é a ação na roda, não no celular
 const DESAFIO_SEM_CELULAR =
-  'Nos desafios, evite tarefas que envolvam gravar ou enviar áudio, vídeo, foto ou mensagem no celular; prefira ações executadas ao vivo, na hora, diante do grupo, mas nao exclua usar o whatsapp, apenas deixe menos repetitivo.'
+  ' '
 
 function json(statusCode, corpo) {
   return new Response(JSON.stringify(corpo), {
@@ -293,9 +293,10 @@ export async function POST(request) {
     `A pergunta deve ser ${NIVEIS[nivel]}.`,
     tipo === 'consequencia' && nivel === 'nsfw' ? FREIO_DESAFIO_NSFW : '',
     tipo === 'consequencia' ? DESAFIO_SEM_CELULAR : '',
-    'Não mencione nomes de pessoas na pergunta.',
-    'Varie o início e a estrutura das frases a cada pergunta, em qualquer modo e nível; evite repetir o mesmo padrão (verdades: nem só "Qual foi...", nem só "Já..."; desafios: nem só "Faça...").',
-    'A pergunta deve ter no máximo 2 frases, ser direta e caber numa linha de tela de celular.',
+    'Não mencione nomes de pessoas na pergunta. Evite repetir perguntas ou desafios muito semelhantes.',
+    'Alterne entre: humor; curiosidades; histórias pessoais; relacionamentos; situações constrangedoras; criatividade; improvisação; interação entre jogadores; desafios individuais; desafios envolvendo todo o grupo.',
+    'Varie o início e a estrutura das frases a cada pergunta, em qualquer modo e nível; evite repetir o mesmo padrão (verdades: nem só "Qual foi...", nem só "Já..."; desafios: nem só "Faça..."); Não transforme todas as rodadas em perguntas sobre relacionamentos ou sexualidade, mesmo no modo NSFW.',
+    'A pergunta deve ter no máximo 3 frases, ser direta.',
     historico.length > 0
       ? `IMPORTANTE: NÃO repita NENHUMA das perguntas abaixo. Gere uma pergunta COMPLETAMENTE DIFERENTE em tema, estrutura e palavras-chave.\nPerguntas já usadas (não repita nem varie levemente):\n${historico.map((q) => `- ${q}`).join('\n')}`
       : '',
