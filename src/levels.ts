@@ -268,7 +268,7 @@ export const BANCOS_PERGUNTAS: Record<NivelPicancia, Record<TipoPergunta, string
       "Qual é o seu talento íntimo que ninguém imagina? /bkp",
       "Se pudesse apagar UMA memória da sua vida amorosa, qual seria? /bkp",
       "Já ficou com o crush de alguém da roda? Conta aqui. /bkp",
-      "Qual foi a frase mais cafona que funcionou com você na cama? /bkp",
+      "Se você pudesse escolher 2 celebridades para fazer um ménage com você, quem seriam? /bkp",
       "Você já se apaixonou por alguém depois de só uma noite? E agora? /bkp",
       "Qual é a posição que você defende com unhas, dentes e argumentos? /bkp",
       "Já fez algo picante durante uma videochamada? Conte o contexto. /bkp",

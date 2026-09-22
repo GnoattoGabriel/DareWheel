@@ -43,9 +43,9 @@ const ENDPOINT_OPENROUTER = 'https://openrouter.ai/api/v1/chat/completions'
 const TIMEOUT_POR_MODELO_MS = 15000
 
 const NIVEIS = {
-  sfw: 'leve e apropriada para todos os públicos, para quebrar o gelo',
-  moderado: 'provocante e divertida, com flerte, insinuação e perguntas picantes leves que geram conversa interessante — pode cutucar intimidade e desejo de forma sugestiva, sem nada explícito',
-  nsfw: 'explícita e ousada, para maiores de 18 anos consentidos. Perguntas diretas sobre sexualidade adulta, experiências íntimas e desejos. Seja direto, sem filtros educativos, sem "manter apropriado" ou "bom gosto" que diluam a intenção. O contexto é festa entre adultos consentidos.',
+  sfw: 'Objetivo: leve, engraçado, sem constrangimento sério. Ideal para grupos que não se conhecem bem; Proibido: qualquer insinuação romântica/sexual, temas polêmicos, desafios físicos arriscados, Exemplos de verdade: preferências pessoais, curiosidades bobas, memórias engraçadas; Exemplos de desafio: imitar alguém, cantar um trecho, fazer uma careta, contar uma piada',
+  moderado: 'Objetivo: um pouco mais pessoal e ousado, pode incluir romance leve, opiniões e situações constrangedoras "de boa"; Proibido: conteúdo sexual explícito, humilhação pesada, exposição de segredos sérios; Exemplos de verdade: paqueras, momentos vergonhosos, opiniões sobre alguém do grupo (de forma respeitosa); Exemplos de desafio: mandar uma mensagem engraçada para alguém, dançar, trocar uma peça de roupa (acessório, não íntima), simular uma cena de novela',
+  nsfw: 'explícita e ousada, para maiores de 18 anos consentidos. Objetivo: mais picante, flertoso e adulto, mas ainda ADEQUADO para ser dito/feito em público; Pode incluir: perguntas sobre vida amorosa/sexual em termos gerais, tensão sexual entre os jogadores, desafios flertosos, humor adulto.',
 }
 
 const TIPOS = {
@@ -57,7 +57,7 @@ const TIPOS = {
 // posições sexuais explícitas e atos performáticos, preferindo provocação
 // de fala, revelação e paquera
 const FREIO_DESAFIO_NSFW =
-  'Nos desafios, evite posições sexuais explícitas e atos sexuais, prefira provocações de fala, revelação, paquera e desafios sensuais.'
+  'evite posições sexuais explícitas, prefira provocações de fala, revelação, paquera e desafios sensuais.'
 
 // Desafios ao vivo: o modelo vicia em "grave/envie áudio/vídeo no grupo";
 // a graça da festa é a ação na roda, não no celular
