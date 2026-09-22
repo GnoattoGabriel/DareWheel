@@ -50,19 +50,19 @@ const NIVEIS = {
 
 const TIPOS = {
   verdade: 'uma pergunta de VERDADE (a pessoa responde honestamente)',
-  consequencia: 'um desafio/CONSEQUÊNCIA (a pessoa executa uma ação divertida)',
+  consequencia: 'um desafio/CONSEQUÊNCIA (a pessoa executa uma ação)',
 }
 
 // Freio só para desafios NSFW: verdades seguem explícitas; desafios evitam
 // posições sexuais explícitas e atos performáticos, preferindo provocação
 // de fala, revelação e paquera
 const FREIO_DESAFIO_NSFW =
-  'Nos desafios, evite posições sexuais explícitas e atos sexuais performáticos; prefira provocações de fala, revelação, paquera e desafios sensuais sem contato sexual explícito.'
+  'Nos desafios, evite posições sexuais explícitas e atos sexuais, prefira provocações de fala, revelação, paquera e desafios sensuais.'
 
 // Desafios ao vivo: o modelo vicia em "grave/envie áudio/vídeo no grupo";
 // a graça da festa é a ação na roda, não no celular
 const DESAFIO_SEM_CELULAR =
-  'Nos desafios, evite tarefas que envolvam gravar ou enviar áudio, vídeo, foto ou mensagem no celular; prefira ações executadas ao vivo, na hora, diante do grupo.'
+  'Nos desafios, evite tarefas que envolvam gravar ou enviar áudio, vídeo, foto ou mensagem no celular; prefira ações executadas ao vivo, na hora, diante do grupo, mas nao exclua usar o whatsapp, apenas deixe menos repetitivo.'
 
 function json(statusCode, corpo) {
   return new Response(JSON.stringify(corpo), {
