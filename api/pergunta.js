@@ -5,17 +5,15 @@
 
 const MAX_ULTIMAS = 15
 
-// Cadeias por nivel: o Groq (gpt-oss) lidera em velocidade (~1s) e passa nos
-// 3 niveis sem recusas, inclusive NSFW; Gemini e OpenRouter seguem de
-// fallback. Aliases "-latest" acompanham o modelo atual.
+// Cadeias por nivel: Groq TEMPORARIAMENTE fora (desafios fracos) -
+// Gemini lidera, resto de fallback. Para reativar, recolocar a entrada
+// groq no topo de cada cadeia. Aliases "-latest" acompanham o modelo atual.
 const CADEIA_PADRAO = [
-  { modelo: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b', provedor: 'groq' },
   { modelo: process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest', provedor: 'gemini' },
   { modelo: 'gemini-flash-latest', provedor: 'gemini' },
   { modelo: 'openrouter/free', provedor: 'openrouter' },
 ]
 const CADEIA_NSFW = [
-  { modelo: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b', provedor: 'groq' },
   { modelo: process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest', provedor: 'gemini' },
   { modelo: 'nvidia/nemotron-3-ultra-550b-a55b:free', provedor: 'openrouter' },
 ]
@@ -45,7 +43,7 @@ const TIMEOUT_POR_MODELO_MS = 15000
 const NIVEIS = {
   sfw: 'Objetivo: leve, engraçado, sem constrangimento sério. Ideal para grupos que não se conhecem bem; Proibido: qualquer insinuação romântica/sexual, temas polêmicos, desafios físicos arriscados, Exemplos de verdade: preferências pessoais, curiosidades bobas, memórias engraçadas; Exemplos de desafio: imitar alguém, cantar um trecho, fazer uma careta, contar uma piada',
   moderado: 'Objetivo: um pouco mais pessoal e ousado, pode incluir romance leve, opiniões e situações constrangedoras "de boa"; Proibido: conteúdo sexual explícito, humilhação pesada, exposição de segredos sérios; Exemplos de verdade: paqueras, momentos vergonhosos, opiniões sobre alguém do grupo; Exemplos de desafio: mandar uma mensagem engraçada para alguém, dançar, simular uma cena de novela',
-  nsfw: 'explícita e ousada, para maiores de 18 anos consentidos. Objetivo: mais picante, flertoso e adulto, mas ainda ADEQUADO para ser dito/feito em público; Pode incluir: perguntas sobre vida amorosa/sexual em termos gerais, tensão sexual entre os jogadores, desafios flertosos (como chupar o dedo de alguem), trocar uma peça de roupa, humor adulto.',
+  nsfw: 'explícita e ousada, para maiores de 18 anos consentidos. Objetivo: mais picante, flertoso e adulto, mas ainda ADEQUADO para ser dito/feito em público; Pode incluir: perguntas sobre vida amorosa/sexual ',
 }
 
 const TIPOS = {
@@ -57,7 +55,7 @@ const TIPOS = {
 // posições sexuais explícitas e atos performáticos, preferindo provocação
 // de fala, revelação e paquera
 const FREIO_DESAFIO_NSFW =
-  'prefira provocações de fala, revelação, paquera e desafios sensuais. (limite seria algo como chupar o dedo da pessoa ao lado, trocar uma peça de roupa) '
+  ' '
 
 // Desafios ao vivo: o modelo vicia em "grave/envie áudio/vídeo no grupo";
 // a graça da festa é a ação na roda, não no celular
@@ -296,7 +294,7 @@ export async function POST(request) {
     tipo === 'consequencia' ? DESAFIO_SEM_CELULAR : '',
     'Não mencione nomes de pessoas na pergunta. Evite repetir perguntas ou desafios muito semelhantes.',
     'Alterne entre: humor; curiosidades; histórias pessoais; relacionamentos; situações constrangedoras; criatividade; improvisação; interação entre jogadores',
-    'Varie o início e a estrutura das frases a cada pergunta, em qualquer modo e nível; evite repetir o mesmo padrão (verdades: nem só "Qual foi...", nem só "Já..."; desafios: nem só "Faça..."); Não transforme todas as rodadas em perguntas sobre relacionamentos ou sexualidade, mesmo no modo NSFW.',
+    'Varie o início e a estrutura das frases a cada pergunta, em qualquer modo e nível; evite repetir o mesmo padrão (verdades: nem só "Qual foi...", nem só "Já..."; desafios: nem só "Faça...")',
     'A pergunta deve ter no máximo 3 frases, ser direta.',
     historico.length > 0
       ? `IMPORTANTE: NÃO repita NENHUMA das perguntas abaixo. Gere uma pergunta COMPLETAMENTE DIFERENTE em tema, estrutura e palavras-chave.\nPerguntas já usadas (não repita nem varie levemente):\n${historico.map((q) => `- ${q}`).join('\n')}`
