@@ -5,17 +5,20 @@
 
 const MAX_ULTIMAS = 15
 
-// Cadeias por nivel: Groq TEMPORARIAMENTE fora (desafios fracos) -
-// Gemini lidera, resto de fallback. Para reativar, recolocar a entrada
-// groq no topo de cada cadeia. Aliases "-latest" acompanham o modelo atual.
+// Cadeias por nivel: Groq (gpt-oss) na frente - rapido (~1s) e sem
+// recusas, inclusive NSFW. NSFW tem Nemotron antes do Gemini porque o
+// Gemini zera a resposta no explicito (finishReason SAFETY).
+// Aliases "-latest" acompanham o modelo atual.
 const CADEIA_PADRAO = [
+  { modelo: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b', provedor: 'groq' },
   { modelo: process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest', provedor: 'gemini' },
   { modelo: 'gemini-flash-latest', provedor: 'gemini' },
   { modelo: 'openrouter/free', provedor: 'openrouter' },
 ]
 const CADEIA_NSFW = [
-  { modelo: process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest', provedor: 'gemini' },
+  { modelo: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b', provedor: 'groq' },
   { modelo: 'nvidia/nemotron-3-ultra-550b-a55b:free', provedor: 'openrouter' },
+  { modelo: process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest', provedor: 'gemini' },
 ]
 
 function cadeiaParaNivel(nivel) {
@@ -175,12 +178,17 @@ async function chamarGemini(modelo, system, apiKey, sinal) {
   }
 
   const dados = await resposta.json()
-  const partes = dados.candidates?.[0]?.content?.parts ?? []
-  return partes
+  const candidato = dados.candidates?.[0]
+  const partes = candidato?.content?.parts ?? []
+  const texto = partes
     .filter((p) => p.thought !== true && typeof p.text === 'string')
     .map((p) => p.text)
     .join('')
     .trim()
+  if (!texto) {
+    console.error(`Gemini sem texto (${modelo}): finishReason=${candidato?.finishReason ?? '?'} blockReason=${dados.promptFeedback?.blockReason ?? '?'}`)
+  }
+  return texto
 }
 
 async function chamarGroq(modelo, system, apiKey, sinal) {
