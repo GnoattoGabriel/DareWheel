@@ -5,18 +5,15 @@
 
 const MAX_ULTIMAS = 15
 
-// Cadeias por nivel: Groq (gpt-oss) na frente - rapido (~1s) e sem
-// recusas, inclusive NSFW. NSFW tem Nemotron antes do Gemini porque o
-// Gemini zera a resposta no explicito (finishReason SAFETY).
+// Cadeias por nivel: Groq fora de novo (desafios fracos) - Gemini lidera,
+// resto de fallback. Para reativar, recolocar a entrada groq no topo.
 // Aliases "-latest" acompanham o modelo atual.
 const CADEIA_PADRAO = [
-  { modelo: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b', provedor: 'groq' },
   { modelo: process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest', provedor: 'gemini' },
   { modelo: 'gemini-flash-latest', provedor: 'gemini' },
   { modelo: 'openrouter/free', provedor: 'openrouter' },
 ]
 const CADEIA_NSFW = [
-  { modelo: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b', provedor: 'groq' },
   { modelo: 'nvidia/nemotron-3-ultra-550b-a55b:free', provedor: 'openrouter' },
   { modelo: process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest', provedor: 'gemini' },
 ]
