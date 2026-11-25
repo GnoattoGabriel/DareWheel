@@ -1,47 +1,60 @@
-// Proxy serverless Vercel - chaves (Groq/Gemini/OpenRouter) nunca chegam ao cliente.
+// Proxy serverless Vercel - chaves (Groq/Gemini) nunca chegam ao cliente.
 // POST /api/pergunta
 // Body: { tipo: "verdade"|"consequencia", nivel: "sfw"|"moderado"|"nsfw", nome: string, ultimas: string[] }
 // Resposta: { "pergunta": "..." } | Erro: { "erro": "..." }
 
 const MAX_ULTIMAS = 15
+const MAX_ULTIMA_LEN = 400
 
 // Cadeia unica para todos os niveis e tipos: Groq (gpt-oss-120b) e Gemini
-// alternam a primeira tentativa por rodada; OpenRouter e o ultimo fallback.
+// alternam a primeira tentativa por rodada; um Groq menor e o ultimo fallback.
 const MODELO_GROQ = process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b'
 const MODELO_GEMINI = process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest'
-const CADEIA_PADRAO = [
+const MODELO_GROQ_FALLBACK = process.env.GROQ_FALLBACK_MODEL ?? 'qwen/qwen3.8-27b'
+const CADEIA = [
   { modelo: MODELO_GROQ, provedor: 'groq' },
   { modelo: MODELO_GEMINI, provedor: 'gemini' },
-  { modelo: 'openrouter/free', provedor: 'openrouter' },
+  { modelo: MODELO_GROQ_FALLBACK, provedor: 'groq' },
 ]
-const CADEIA_NSFW = [
-  { modelo: MODELO_GROQ, provedor: 'groq' },
-  { modelo: MODELO_GEMINI, provedor: 'gemini' },
-  { modelo: 'openrouter/free', provedor: 'openrouter' },
-]
-
-function cadeiaParaNivel(nivel) {
-  return nivel === 'nsfw' ? CADEIA_NSFW : CADEIA_PADRAO
-}
 
 /**
  * Revezamento por rodada: Groq e Gemini alternam a primeira tentativa;
- * OpenRouter segue como fallback na ordem. Impares comecam no Groq,
- * pares no Gemini.
+ * o Groq menor segue como fallback. Impares comecam no Groq, pares no Gemini.
  */
-function ordenarPorRodada(cadeia, rodada) {
-  if (cadeia.length > 1 && rodada % 2 === 0) {
-    return [cadeia[1], cadeia[0], ...cadeia.slice(2)]
+function ordenarPorRodada(rodada) {
+  if (rodada % 2 === 0) {
+    return [CADEIA[1], CADEIA[0], ...CADEIA.slice(2)]
   }
-  return cadeia
+  return CADEIA
 }
 
 const ENDPOINT_GROQ = 'https://api.groq.com/openai/v1/chat/completions'
-
 const ENDPOINT_GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models'
-const ENDPOINT_OPENROUTER = 'https://openrouter.ai/api/v1/chat/completions'
 // 3 modelos x 8s = 24s no pior caso; o cliente espera 25s (src/api.ts).
 const TIMEOUT_POR_MODELO_MS = 8000
+
+// Limite simples por instancia da funcao (Vercel cria varias): protege as
+// chaves contra uso indiscriminado sem afetar o jogador normal.
+const LIMITE_REQ_POR_MINUTO = Number(process.env.LIMITE_REQ_POR_MINUTO ?? 30)
+const JANELA_LIMITE_MS = 60_000
+const contagemPorIp = new Map()
+
+function excedeuLimite(ip) {
+  const agora = Date.now()
+  const entrada = contagemPorIp.get(ip)
+  if (!entrada || agora - entrada.inicio >= JANELA_LIMITE_MS) {
+    // Podas entradas antigas para o Map nao crescer sem limite.
+    if (contagemPorIp.size > 1000) {
+      for (const [chave, valor] of contagemPorIp) {
+        if (agora - valor.inicio >= JANELA_LIMITE_MS) contagemPorIp.delete(chave)
+      }
+    }
+    contagemPorIp.set(ip, { inicio: agora, total: 1 })
+    return false
+  }
+  entrada.total++
+  return entrada.total > LIMITE_REQ_POR_MINUTO
+}
 
 const BASE = [
   'Você escreve o texto de uma rodada do DareWheel, jogo de verdade ou consequência.',
@@ -78,10 +91,10 @@ const FREIO_DESAFIO_NSFW =
 const DESAFIO_SEM_CELULAR =
   'Prefira ações ao vivo na roda. No máximo 1 em cada 5 desafios pode envolver celular; nunca exija gravar ou enviar áudio, vídeo ou foto.'
 
-function json(statusCode, corpo) {
+function json(statusCode, corpo, headersExtra = {}) {
   return new Response(JSON.stringify(corpo), {
     status: statusCode,
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    headers: { 'Content-Type': 'application/json; charset=utf-8', ...headersExtra },
   })
 }
 
@@ -203,79 +216,75 @@ async function chamarGemini(modelo, system, apiKey, sinal) {
 }
 
 async function chamarGroq(modelo, system, apiKey, sinal) {
-  const resposta = await fetch(ENDPOINT_GROQ, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: modelo,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: 'Gere a próxima pergunta do jogo.' },
-      ],
-      temperature: 1,
-      response_format: { type: 'json_object' },
-    }),
-    signal: sinal,
-  })
+  for (let tentativa = 1; tentativa <= 2; tentativa++) {
+    const resposta = await fetch(ENDPOINT_GROQ, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: modelo,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: 'Gere a próxima pergunta do jogo.' },
+        ],
+        temperature: 1,
+        response_format: { type: 'json_object' },
+      }),
+      signal: sinal,
+    })
 
-  if (!resposta.ok) {
-    throw new Error(`HTTP ${resposta.status}`)
+    if (resposta.ok) {
+      const dados = await resposta.json()
+      const conteudo = dados.choices?.[0]?.message?.content
+      return typeof conteudo === 'string' ? conteudo.trim() : ''
+    }
+
+    const textoErro = await resposta.text()
+    const detalhe = textoErro.slice(0, 160)
+    // 429 e comum no tier free (TPM). Uma unica tentativa curta evita
+    // desperdicar o timeout de 8s do modelo.
+    if (resposta.status === 429 && tentativa === 1 && !sinal.aborted) {
+      const sugerido = Number(resposta.headers.get('retry-after') ?? (textoErro.match(/try again in ([\d.]+)s/) ?? [])[1] ?? 1)
+      const espera = Math.min(Math.max(Number.isFinite(sugerido) ? sugerido : 1, 0.5), 2)
+      console.error(`Groq 429 em ${modelo} - retry em ${espera.toFixed(1)}s`)
+      await new Promise((resolve) => setTimeout(resolve, espera * 1000))
+      continue
+    }
+    throw new Error(`HTTP ${resposta.status}: ${detalhe}`)
   }
-
-  const dados = await resposta.json()
-  const conteudo = dados.choices?.[0]?.message?.content
-  return typeof conteudo === 'string' ? conteudo.trim() : ''
-}
-
-async function chamarOpenRouter(modelo, system, apiKey, sinal) {
-  const resposta = await fetch(ENDPOINT_OPENROUTER, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-      // Atribuicao do app recomendada pelo OpenRouter
-      'HTTP-Referer': 'https://darewheel.vercel.app',
-      'X-Title': 'DareWheel',
-    },
-    body: JSON.stringify({
-      model: modelo,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: 'Gere a próxima pergunta do jogo.' },
-      ],
-      temperature: 1,
-      response_format: { type: 'json_object' },
-      // Modelos de raciocinio gratuitos: nao devolver tokens de "thinking"
-      reasoning: { exclude: true },
-    }),
-    signal: sinal,
-  })
-
-  if (!resposta.ok) {
-    throw new Error(`HTTP ${resposta.status}`)
-  }
-
-  const dados = await resposta.json()
-  const conteudo = dados.choices?.[0]?.message?.content
-  return typeof conteudo === 'string' ? conteudo.trim() : ''
+  return ''
 }
 
 // Export nomeado por metodo HTTP: o runtime da Vercel reconhece o estilo
 // Web API apenas com exports nomeados (GET/POST...); com export default
 // ele interpreta a assinatura como Node (req, res) e ignora as respostas
 export async function POST(request) {
+  const requestId = Math.random().toString(36).slice(2, 10)
+  const responder = (status, corpo, headers = {}) =>
+    json(status, corpo, { 'X-Request-Id': requestId, ...headers })
+
+  const ip = String(
+    request.headers?.get?.('x-forwarded-for') ?? request.headers?.get?.('x-real-ip') ?? 'local'
+  ).split(',')[0].trim() || 'local'
+  if (excedeuLimite(ip)) {
+    return responder(
+      429,
+      { erro: 'Muitas perguntas em pouco tempo. Tente novamente em instantes.' },
+      { 'Retry-After': '60' }
+    )
+  }
+
   if (request.method !== 'POST') {
-    return json(405, { erro: 'Método não permitido' })
+    return responder(405, { erro: 'Método não permitido' })
   }
 
   let corpo
   try {
     corpo = await request.json()
   } catch {
-    return json(400, { erro: 'JSON inválido' })
+    return responder(400, { erro: 'JSON inválido' })
   }
 
   const { tipo, nivel, nome, ultimas, rodada } = corpo ?? {}
@@ -286,24 +295,25 @@ export async function POST(request) {
     typeof tipo !== 'string' || !Object.hasOwn(REGRAS_TIPO, tipo) ||
     typeof nivel !== 'string' || !Object.hasOwn(NIVEIS, nivel)
   ) {
-    return json(400, { erro: 'Campos obrigatórios ausentes ou inválidos: tipo, nivel' })
+    return responder(400, { erro: 'Campos obrigatórios ausentes ou inválidos: tipo, nivel' })
   }
   // Rodada opcional (clientes antigos nao enviam): default 1 = começa no
   // primeiro modelo da cadeia do nivel
   const numeroRodada = Number.isInteger(rodada) && rodada >= 1 ? rodada : 1
   if (typeof nome !== 'string' || nome.trim().length === 0 || nome.length > 40) {
-    return json(400, { erro: 'Campo nome inválido' })
+    return responder(400, { erro: 'Campo nome inválido' })
   }
   const historico = Array.isArray(ultimas)
-    ? ultimas.filter((q) => typeof q === 'string').slice(-MAX_ULTIMAS)
+    ? ultimas
+        .filter((q) => typeof q === 'string' && q.length <= MAX_ULTIMA_LEN)
+        .slice(-MAX_ULTIMAS)
     : []
 
   const chaveGroq = process.env.GROQ_API_KEY
   const chaveGemini = process.env.GEMINI_API_KEY
-  const chaveOpenRouter = process.env.OPENROUTER_API_KEY
-  if (!chaveGroq && !chaveGemini && !chaveOpenRouter) {
-    console.error('Nenhuma chave de IA configurada (GROQ_API_KEY / GEMINI_API_KEY / OPENROUTER_API_KEY)')
-    return json(500, { erro: 'Servidor sem chave de API configurada' })
+  if (!chaveGroq && !chaveGemini) {
+    console.error(`[${requestId}] Nenhuma chave de IA configurada (GROQ_API_KEY / GEMINI_API_KEY)`)
+    return responder(500, { erro: 'Servidor sem chave de API configurada' })
   }
 
   const system = [
@@ -323,11 +333,11 @@ export async function POST(request) {
     .filter(Boolean)
     .join(' ')
 
-  const cadeia = ordenarPorRodada(cadeiaParaNivel(nivel), numeroRodada)
-  console.log(`Rodada ${numeroRodada} (${nivel}/${tipo}): primeira tentativa ${cadeia[0].modelo} (${cadeia[0].provedor})`)
+  const cadeia = ordenarPorRodada(numeroRodada)
+  console.log(`[${requestId}] Rodada ${numeroRodada} (${nivel}/${tipo}): primeira tentativa ${cadeia[0].modelo} (${cadeia[0].provedor})`)
 
   for (const item of cadeia) {
-    const apiKey = item.provedor === 'gemini' ? chaveGemini : item.provedor === 'groq' ? chaveGroq : chaveOpenRouter
+    const apiKey = item.provedor === 'gemini' ? chaveGemini : chaveGroq
     if (!apiKey) continue // provedor sem chave configurada - proximo da cadeia
 
     try {
@@ -335,7 +345,7 @@ export async function POST(request) {
       const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_POR_MODELO_MS)
       let conteudo
       try {
-        const chamador = { gemini: chamarGemini, groq: chamarGroq, openrouter: chamarOpenRouter }[item.provedor]
+        const chamador = { gemini: chamarGemini, groq: chamarGroq }[item.provedor]
         conteudo = await chamador(item.modelo, system, apiKey, controller.signal)
       } finally {
         // Cancela o timer tambem quando a chamada falha (429, timeout, etc).
@@ -344,15 +354,15 @@ export async function POST(request) {
 
       const pergunta = conteudo ? extrairPergunta(conteudo, tipo) : null
       if (pergunta) {
-        return json(200, { pergunta })
+        return responder(200, { pergunta })
       }
 
-      console.error(`Resposta rejeitada de ${item.modelo} (${item.provedor}). Conteudo: ${JSON.stringify(String(conteudo).slice(0, 250))}`)
+      console.error(`[${requestId}] Resposta rejeitada de ${item.modelo} (${item.provedor}). Conteudo: ${JSON.stringify(String(conteudo).slice(0, 250))}`)
     } catch (erro) {
       const abortado = erro?.name === 'AbortError'
-      console.error(`Erro ao chamar ${item.modelo} (${item.provedor}):`, abortado ? 'timeout' : erro?.message ?? erro)
+      console.error(`[${requestId}] Erro ao chamar ${item.modelo} (${item.provedor}):`, abortado ? 'timeout' : erro?.message ?? erro)
     }
   }
 
-  return json(502, { erro: 'Nenhum modelo conseguiu gerar uma pergunta valida' })
+  return responder(502, { erro: 'Nenhum modelo conseguiu gerar uma pergunta valida' })
 }

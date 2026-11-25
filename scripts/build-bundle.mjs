@@ -55,6 +55,16 @@ const codigoFinal = ordem
   })
   .join("\n\n")
 
+// Injeta configuracao do banco de backup via env vars no bundle final.
+// Fora do build os placeholders viram NaN e o menu usa os padroes.
+const envNumero = (nome, padrao) => {
+  const valor = Number(process.env[nome])
+  return Number.isInteger(valor) && valor > 0 ? String(valor) : String(padrao)
+}
+const codigoComConfig = codigoFinal
+  .replaceAll("__BANCO_APOS_RODADA__", envNumero("BANCO_APOS_RODADA", 20))
+  .replaceAll("__BANCO_CADA_RODADAS__", envNumero("BANCO_CADA_RODADAS", 3))
+
 mkdirSync(dirname(OUT_FILE), { recursive: true })
-writeFileSync(OUT_FILE, `(() => {\n"use strict";\n${codigoFinal}\n})();\n`, "utf-8")
+writeFileSync(OUT_FILE, `(() => {\n"use strict";\n${codigoComConfig}\n})();\n`, "utf-8")
 console.log(`Bundle gerado: ${OUT_FILE} (${ordem.length} modulos: ${ordem.join(", ")})`)

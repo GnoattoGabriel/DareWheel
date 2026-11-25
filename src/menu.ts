@@ -7,6 +7,16 @@ import { modal } from "./modal.js"
 
 const PALETA = Wheel.PALETA_CORES
 
+// Placeholders substituidos pelo build (scripts/build-bundle.mjs) com as
+// env vars BANCO_APOS_RODADA / BANCO_CADA_RODADAS. Valores literais aqui
+// mantem o arquivo compilavel e com fallback seguro fora do bundle.
+function lerNumero(valor: string, padrao: number): number {
+  const numero = Number(valor)
+  return Number.isInteger(numero) && numero > 0 ? numero : padrao
+}
+const BANCO_APOS_RODADA = lerNumero('__BANCO_APOS_RODADA__', 20)
+const BANCO_CADA_RODADAS = lerNumero('__BANCO_CADA_RODADAS__', 3)
+
 export class Menu {
   private static readonly EMOJIS_DISPONIVEIS = [
     "😈", "🦄", "👽", "🤖", "🐸", "🦃", "🍕", "💀",
@@ -29,6 +39,7 @@ export class Menu {
   private rodadaAtual: number = 1
   /** Token que invalida respostas de geracoes anteriores (reroll/nova rodada). */
   private geracaoPergunta: number = 0
+  private timerDemora: number | null = null
 
   constructor() {
     this.inicializar()
@@ -431,6 +442,9 @@ export class Menu {
     // Esconder menu, mostrar área do jogo
     this.esconderMenu()
 
+    // Nova partida = novo historico (o estado salvo abaixo tambem zera).
+    this.perguntasUsadas.clear()
+
     // Resetar contador de reroll
     this.rerollUsos = 0
     this.atualizarBotaoReroll(false)
@@ -682,9 +696,17 @@ export class Menu {
     }
   }
 
+  private limparTimerDemora(): void {
+    if (this.timerDemora !== null) {
+      clearTimeout(this.timerDemora)
+      this.timerDemora = null
+    }
+  }
+
   /** Invalida qualquer geracao em andamento (nova rodada, menu, novo jogo). */
   private cancelarGeracaoPergunta(): void {
     this.geracaoPergunta++
+    this.limparTimerDemora()
   }
 
   /**
@@ -724,6 +746,11 @@ export class Menu {
     p.textContent = 'Gerando pergunta…'
     perguntaElem.appendChild(p)
     perguntaElem.style.display = 'flex'
+
+    this.limparTimerDemora()
+    this.timerDemora = window.setTimeout(() => {
+      if (p.isConnected) p.textContent = 'Demorou mais que o normal, tentando outro modelo…'
+    }, 10_000)
   }
 
   private async resolverEscolha(tipo: "verdade" | "consequencia"): Promise<void> {
@@ -840,13 +867,12 @@ export class Menu {
 
   /** Usa a rodada recebida pelo chamador; reler o estado aqui atrasava 1 rodada. */
   private deveUsarBanco(rodada: number): boolean {
-    if (rodada < 20) {
+    if (rodada < BANCO_APOS_RODADA) {
       return false
     }
-    // 1/3 banco (primeira do trio), 2/3 API - que ja alternam
-    // GPT/Gemini pela rodada no proxy
-    const posicao = (rodada - 20) % 3
-    return posicao === 0
+    // 1 banco a cada N rodadas; as demais usam a API, que ja alterna
+    // GPT/Gemini pelo rodada no proxy.
+    return (rodada - BANCO_APOS_RODADA) % BANCO_CADA_RODADAS === 0
   }
 
   private async gerarPergunta(nome: string, tipo: "verdade" | "consequencia", nivel: NivelPicancia, rodada: number): Promise<string> {
@@ -874,6 +900,7 @@ export class Menu {
   }
 
   private exibirPergunta(pergunta: string, config: ConfigJogo): void {
+    this.limparTimerDemora()
     const perguntaElem = document.getElementById('pergunta') as HTMLElement | null
     const areaJogo = document.getElementById('area-jogo') as HTMLElement | null
 

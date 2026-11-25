@@ -28,7 +28,7 @@ export async function pedirPergunta(pedido: PedidoPergunta): Promise<string> {
         tipo: pedido.tipo,
         nivel: pedido.nivel,
         nome: pedido.nome,
-        ultimas: pedido.ultimas.slice(-5),
+        ultimas: pedido.ultimas.slice(-15),
         rodada: pedido.rodada,
       }),
       signal: controller.signal,

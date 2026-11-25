@@ -5,6 +5,7 @@ export class Modal {
   private resolveConfirm: ((value: boolean) => void) | null = null
   private inputEl: HTMLInputElement
   private inputWrapper: HTMLElement
+  private ultimoFoco: HTMLElement | null = null
 
   constructor() {
     this.overlay = document.createElement('div')
@@ -46,20 +47,51 @@ export class Modal {
       }
     })
 
+    this.inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && this.isOpen && this.resolveConfirm === null) {
+        e.preventDefault()
+        this.fechar(this.inputEl.value.trim() || null)
+      }
+    })
+
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.isOpen) {
+      if (!this.isOpen) return
+      if (e.key === 'Escape') {
         if (this.resolveConfirm !== null) {
           this.fecharConfirm(false)
         } else {
           this.fechar(null)
         }
+        return
+      }
+      if (e.key !== 'Tab') return
+
+      // Focus trap: o dialogo nao pode deixar o foco escapar para a pagina.
+      const focaveis = Array.from(
+        this.overlay.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')
+      ).filter((el) => el.offsetParent !== null || el === this.inputEl)
+      if (focaveis.length === 0) return
+      const primeiro = focaveis[0]
+      const ultimo = focaveis[focaveis.length - 1]
+      if (e.shiftKey && document.activeElement === primeiro) {
+        e.preventDefault()
+        ultimo.focus()
+      } else if (!e.shiftKey && document.activeElement === ultimo) {
+        e.preventDefault()
+        primeiro.focus()
       }
     })
+  }
+
+  private restaurarFoco(): void {
+    if (this.ultimoFoco?.isConnected) this.ultimoFoco.focus()
+    this.ultimoFoco = null
   }
 
   private fechar(valor: string | null): void {
     if (!this.isOpen) return
     this.isOpen = false
+    this.restaurarFoco()
     document.body.style.overflow = ''
     this.overlay.classList.remove('visivel')
     window.setTimeout(() => {
@@ -76,6 +108,7 @@ export class Modal {
   private fecharConfirm(valor: boolean): void {
     if (!this.isOpen) return
     this.isOpen = false
+    this.restaurarFoco()
     document.body.style.overflow = ''
     this.overlay.classList.remove('visivel')
     window.setTimeout(() => {
@@ -90,7 +123,9 @@ export class Modal {
   }
 
   open(titulo: string, mensagem: string, placeholder: string = 'Nome opcional'): Promise<string | null> {
+    if (this.isOpen) return Promise.resolve(null)
     return new Promise((resolve) => {
+      this.ultimoFoco = document.activeElement instanceof HTMLElement ? document.activeElement : null
       this.resolveFn = resolve
       this.resolveConfirm = null
 
@@ -118,7 +153,9 @@ export class Modal {
   }
 
   confirm(titulo: string, mensagem: string): Promise<boolean> {
+    if (this.isOpen) return Promise.resolve(false)
     return new Promise((resolve) => {
+      this.ultimoFoco = document.activeElement instanceof HTMLElement ? document.activeElement : null
       this.resolveConfirm = resolve
       this.resolveFn = null
 
