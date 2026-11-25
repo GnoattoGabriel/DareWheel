@@ -13,7 +13,8 @@ export interface PedidoPergunta {
   rodada: number
 }
 
-const TIMEOUT_MS = 8000
+// Deve ser maior que o tempo total do proxy (3 modelos x 8s = 24s).
+const TIMEOUT_MS = 25000
 
 export async function pedirPergunta(pedido: PedidoPergunta): Promise<string> {
   const controller = new AbortController()

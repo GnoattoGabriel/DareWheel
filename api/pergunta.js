@@ -40,7 +40,8 @@ const ENDPOINT_GROQ = 'https://api.groq.com/openai/v1/chat/completions'
 
 const ENDPOINT_GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models'
 const ENDPOINT_OPENROUTER = 'https://openrouter.ai/api/v1/chat/completions'
-const TIMEOUT_POR_MODELO_MS = 15000
+// 3 modelos x 8s = 24s no pior caso; o cliente espera 25s (src/api.ts).
+const TIMEOUT_POR_MODELO_MS = 8000
 
 const BASE = [
   'Você escreve o texto de uma rodada do DareWheel, jogo de verdade ou consequência.',
@@ -279,7 +280,12 @@ export async function POST(request) {
 
   const { tipo, nivel, nome, ultimas, rodada } = corpo ?? {}
 
-  if (!REGRAS_TIPO[tipo] || !NIVEIS[nivel]) {
+  // hasOwn evita chaves do prototype ("toString", "constructor") passarem
+  // como tipo/nivel validos e vazarem para dentro do prompt.
+  if (
+    typeof tipo !== 'string' || !Object.hasOwn(REGRAS_TIPO, tipo) ||
+    typeof nivel !== 'string' || !Object.hasOwn(NIVEIS, nivel)
+  ) {
     return json(400, { erro: 'Campos obrigatórios ausentes ou inválidos: tipo, nivel' })
   }
   // Rodada opcional (clientes antigos nao enviam): default 1 = começa no
@@ -327,11 +333,14 @@ export async function POST(request) {
     try {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_POR_MODELO_MS)
-
-      const chamador = { gemini: chamarGemini, groq: chamarGroq, openrouter: chamarOpenRouter }[item.provedor]
-      const conteudo = await chamador(item.modelo, system, apiKey, controller.signal)
-
-      clearTimeout(timeoutId)
+      let conteudo
+      try {
+        const chamador = { gemini: chamarGemini, groq: chamarGroq, openrouter: chamarOpenRouter }[item.provedor]
+        conteudo = await chamador(item.modelo, system, apiKey, controller.signal)
+      } finally {
+        // Cancela o timer tambem quando a chamada falha (429, timeout, etc).
+        clearTimeout(timeoutId)
+      }
 
       const pergunta = conteudo ? extrairPergunta(conteudo, tipo) : null
       if (pergunta) {
