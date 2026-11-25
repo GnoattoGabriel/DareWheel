@@ -6,7 +6,7 @@
  * - Executa as funções reais de api/ via Web Request/Response
  * - Carrega .env.local para process.env (mesma convenção da Vercel)
  *
- * Uso: npm run dev:node  →  http://localhost:3000
+ * Uso: npm run dev:local  →  http://localhost:3000
  */
 import { createServer } from "node:http"
 import { readFileSync, existsSync, readdirSync } from "node:fs"

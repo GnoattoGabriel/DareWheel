@@ -345,9 +345,11 @@ export class Wheel {
       // aplica direto e sorteia ponderado pelos pesos
       this.atualizarVisual()
       const boca = this.sortearPonderado()
-      const bundaIndice =
-        (this.ordemExibicao.indexOf(boca) + Math.ceil(this.ordemExibicao.length / 2)) %
-        this.ordemExibicao.length
+      const bocaIndice = this.ordemExibicao.indexOf(boca)
+      let bundaIndice =
+        (bocaIndice + Math.ceil(this.ordemExibicao.length / 2)) % this.ordemExibicao.length
+      // Com pesos diferentes o ponto oposto pode cair na mesma fatia.
+      if (bundaIndice === bocaIndice) bundaIndice = (bundaIndice + 1) % this.ordemExibicao.length
       this.onResultado({
         boca,
         bunda: this.ordemExibicao[bundaIndice],
@@ -472,9 +474,15 @@ export class Wheel {
     const anguloBunda = (anguloBoca + 180) % 360
 
     const indiceBoca = this.indiceSobAngulo(anguloBoca)
-    const indiceBunda = this.indiceSobAngulo(anguloBunda)
+    let indiceBunda = this.indiceSobAngulo(anguloBunda)
 
     if (indiceBoca === null || indiceBunda === null) return
+
+    // O offset de 180 so separa jogadores com pesos iguais; se cair na
+    // mesma fatia, escolhe o vizinho para nao haver "pergunta a si mesmo".
+    if (indiceBunda === indiceBoca) {
+      indiceBunda = (indiceBunda + 1) % this.ordemExibicao.length
+    }
 
     const boca = this.ordemExibicao[indiceBoca]
     this.onResultado({

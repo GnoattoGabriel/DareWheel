@@ -27,6 +27,8 @@ export class Menu {
   private ultimoTipo: "verdade" | "consequencia" = "verdade"
   private perguntasUsadas: Set<string> = new Set()
   private rodadaAtual: number = 1
+  /** Token que invalida respostas de geracoes anteriores (reroll/nova rodada). */
+  private geracaoPergunta: number = 0
 
   constructor() {
     this.inicializar()
@@ -76,7 +78,9 @@ export class Menu {
     try {
       const parsed = JSON.parse(salvo) as Partial<EstadoJogo>
       if (Array.isArray(parsed.perguntasUsadas)) {
-        this.perguntasUsadas = new Set(parsed.perguntasUsadas)
+        this.perguntasUsadas = new Set(
+          parsed.perguntasUsadas.filter((q): q is string => typeof q === 'string')
+        )
       }
     } catch (erro) {
       console.error("Estado corrompido no localStorage - perguntas usadas descartadas", erro)
@@ -85,9 +89,49 @@ export class Menu {
 
   private carregarConfig(): void {
     const salvo = localStorage.getItem(this.configKey)
-    if (salvo) {
-      const config: ConfigJogo = JSON.parse(salvo)
+    if (!salvo) return
+    try {
+      const config = this.normalizarConfig(JSON.parse(salvo))
+      if (!config) throw new Error('formato de config invalido')
       this.aplicarConfig(config)
+    } catch (erro) {
+      // Config corrompida nao pode derrubar a pagina inteira.
+      console.error("Config salva invalida - usando padrao", erro)
+      localStorage.removeItem(this.configKey)
+    }
+  }
+
+  /** Aceita apenas configs bem formadas; descarta entradas invalidas. */
+  private normalizarConfig(valor: unknown): ConfigJogo | null {
+    if (!valor || typeof valor !== 'object') return null
+    const bruto = valor as Partial<ConfigJogo>
+    if (!Object.values(ModoJogo).includes(bruto.modo as ModoJogo)) return null
+    if (!Object.values(NivelPicancia).includes(bruto.nivel as NivelPicancia)) return null
+    if (!Array.isArray(bruto.participantes)) return null
+
+    const participantes: Participante[] = []
+    const ids = new Set<string>()
+    for (const item of bruto.participantes) {
+      if (!item || typeof item !== 'object') continue
+      const nome = typeof item.nome === 'string' ? item.nome : ''
+      if (!nome) continue
+      let id = typeof item.id === 'string' && item.id ? item.id : ''
+      if (!id || ids.has(id)) id = `restore-${participantes.length}-${Date.now()}`
+      ids.add(id)
+      const participante: Participante = { id, nome }
+      if (typeof item.displayName === 'string' && item.displayName) {
+        participante.displayName = item.displayName
+      }
+      if (typeof item.cor === 'string' && /^#[0-9a-fA-F]{6}$/.test(item.cor)) {
+        participante.cor = item.cor
+      }
+      participantes.push(participante)
+    }
+
+    return {
+      modo: bruto.modo as ModoJogo,
+      nivel: bruto.nivel as NivelPicancia,
+      participantes,
     }
   }
 
@@ -146,31 +190,42 @@ export class Menu {
     const lista = document.getElementById('participantes-lista')
     if (!lista) return
 
+    lista.replaceChildren()
     if (participantes.length === 0) {
-      lista.innerHTML =
-        '<p class="lista-vazia">Nenhum participante ainda — escolha pelo menos 2 emojis para começar.</p>'
+      const vazio = document.createElement('p')
+      vazio.className = 'lista-vazia'
+      vazio.textContent = 'Nenhum participante ainda — escolha pelo menos 2 emojis para começar.'
+      lista.appendChild(vazio)
     } else {
-      lista.innerHTML = participantes
-        .map(
-          (p) =>
-            `<div class="participante-item" data-id="${p.id}" data-cor="${p.cor ?? ""}" data-display-name="${p.displayName ?? ""}">
-                 <span class="chip-cor" style="background:${p.cor ?? "#999"}" aria-hidden="true"></span>
-                 <span class="participante-emoji">${p.nome}</span>
-                 <button class="remover-participante" data-id="${p.id}" aria-label="Remover jogador ${p.nome}">×</button>
-             </div>`
-        )
-        .join("")
+      // DOM via createElement: nome/cor vem do usuario, nunca em innerHTML.
+      for (const p of participantes) {
+        const item = document.createElement('div')
+        item.className = 'participante-item'
+        item.dataset.id = p.id
+        item.dataset.cor = p.cor ?? ''
+        item.dataset.displayName = p.displayName ?? ''
+        const chip = document.createElement('span')
+        chip.className = 'chip-cor'
+        chip.style.background = p.cor ?? '#999'
+        chip.setAttribute('aria-hidden', 'true')
 
-      // Adicionar event listeners para remover
-      document.querySelectorAll('.remover-participante').forEach((btn) => {
-        btn.addEventListener('click', (e) => {
+        const emoji = document.createElement('span')
+        emoji.className = 'participante-emoji'
+        emoji.textContent = p.nome
+
+        const remover = document.createElement('button')
+        remover.className = 'remover-participante'
+        remover.dataset.id = p.id
+        remover.setAttribute('aria-label', `Remover jogador ${p.displayName || p.nome}`)
+        remover.textContent = '×'
+        remover.addEventListener('click', (e) => {
           e.stopPropagation()
-          const idAttr = btn.getAttribute('data-id')
-          if (idAttr) {
-            this.removerParticipante(idAttr)
-          }
+          this.removerParticipante(p.id)
         })
-      })
+
+        item.append(chip, emoji, remover)
+        lista.appendChild(item)
+      }
     }
 
     // Picker sempre sincronizado com o estado atual
@@ -371,6 +426,8 @@ export class Menu {
       }
     }
 
+    this.cancelarGeracaoPergunta()
+
     // Esconder menu, mostrar área do jogo
     this.esconderMenu()
 
@@ -418,6 +475,8 @@ export class Menu {
   }
 
   private voltarAoMenu(): void {
+    this.cancelarGeracaoPergunta()
+
     // Esconder área do jogo
     const areaJogo = document.getElementById('area-jogo') as HTMLElement
     if (areaJogo) {
@@ -505,17 +564,16 @@ export class Menu {
     const container = document.getElementById('legenda-participantes')
     if (!container) return
 
-    if (participantes.length === 0) {
-      container.innerHTML = ''
-      return
-    }
+    container.replaceChildren()
+    if (participantes.length === 0) return
 
-    container.innerHTML = participantes
-      .map((p) => {
-        const nome = p.displayName ? `${p.displayName} ${p.nome}` : p.nome
-        return `<span class="legenda-item" style="color:${p.cor || '#999'}">${nome}</span>`
-      })
-      .join('')
+    for (const p of participantes) {
+      const span = document.createElement('span')
+      span.className = 'legenda-item'
+      span.style.color = p.cor || '#999'
+      span.textContent = p.displayName ? `${p.displayName} ${p.nome}` : p.nome
+      container.appendChild(span)
+    }
   }
 
   private configAtual: ConfigJogo = {
@@ -533,12 +591,29 @@ export class Menu {
 
     // Armazenar o vencedor no estado
     this.configAtual = this.obterConfig() || this.configAtual
-    const estado = localStorage.getItem(this.estadoKey)
-    const parsedEstado = estado ? JSON.parse(estado) : {
+    let parsedEstado: EstadoJogo = {
       config: this.configAtual,
       rodadaAtual: 1,
       vencedorAtual: null,
       perguntasUsadas: [],
+    }
+    const estado = localStorage.getItem(this.estadoKey)
+    if (estado) {
+      try {
+        const salvo = JSON.parse(estado) as Partial<EstadoJogo>
+        if (salvo && typeof salvo.rodadaAtual === 'number') {
+          parsedEstado = {
+            config: this.configAtual,
+            rodadaAtual: Math.max(1, salvo.rodadaAtual),
+            vencedorAtual: salvo.vencedorAtual ?? null,
+            perguntasUsadas: Array.isArray(salvo.perguntasUsadas)
+              ? salvo.perguntasUsadas.filter((q): q is string => typeof q === 'string')
+              : [],
+          }
+        }
+      } catch (erro) {
+        console.error("Estado salvo invalido - reiniciando contagem", erro)
+      }
     }
 
     // Numero da rodada em exibicao: a contagem so avanca DEPOIS do resultado
@@ -572,18 +647,10 @@ export class Menu {
     } else {
       const tipo: "verdade" | "consequencia" =
         this.configAtual.modo === ModoJogo.DESAFIO ? "consequencia" : "verdade"
-      this.exibirCarregando()
-      try {
-        this.ultimoTipo = tipo
-        // numeroRodada e o numero exato desta rodada (o estado no
-        // localStorage so e persistido ao final deste metodo)
-        const pergunta = await this.gerarPergunta(boca.nome, tipo, this.configAtual.nivel, numeroRodada)
-        this.exibirPergunta(pergunta, this.configAtual)
-      } catch (erro) {
-        console.error("Erro ao gerar pergunta", erro)
-        const fallback = this.obterPerguntaFallback(boca.nome, tipo, this.configAtual.nivel)
-        this.exibirPergunta(fallback, this.configAtual)
-      }
+      this.ultimoTipo = tipo
+      // numeroRodada e o numero exato desta rodada (o estado no
+      // localStorage so e persistido ao final deste metodo)
+      void this.gerarEExibirPergunta(boca.nome, tipo, this.configAtual.nivel, numeroRodada, this.configAtual)
     }
 
     // Salvar estado atualizado (incluindo perguntas de banco ja usadas)
@@ -615,6 +682,37 @@ export class Menu {
     }
   }
 
+  /** Invalida qualquer geracao em andamento (nova rodada, menu, novo jogo). */
+  private cancelarGeracaoPergunta(): void {
+    this.geracaoPergunta++
+  }
+
+  /**
+   * Gera e exibe a pergunta. Um clique novo (reroll/rodada) invalida a
+   * geracao anterior: respostas lentas nao podem sobrescrever a atual.
+   */
+  private async gerarEExibirPergunta(
+    nome: string,
+    tipo: "verdade" | "consequencia",
+    nivel: NivelPicancia,
+    rodada: number,
+    config: ConfigJogo
+  ): Promise<void> {
+    const geracao = ++this.geracaoPergunta
+    const btnReroll = document.getElementById('btn-reroll') as HTMLButtonElement | null
+    if (btnReroll) btnReroll.disabled = true
+    this.exibirCarregando()
+    try {
+      const pergunta = await this.gerarPergunta(nome, tipo, nivel, rodada)
+      if (geracao !== this.geracaoPergunta) return
+      this.exibirPergunta(pergunta, config)
+    } catch (erro) {
+      if (geracao !== this.geracaoPergunta) return
+      console.error("Erro ao gerar pergunta", erro)
+      this.exibirPergunta(this.obterPerguntaFallback(nome, tipo, nivel), config)
+    }
+  }
+
   /** Estado de espera visivel enquanto a API gera a pergunta */
   private exibirCarregando(): void {
     const perguntaElem = document.getElementById('pergunta') as HTMLElement | null
@@ -643,18 +741,9 @@ export class Menu {
 
     const config = this.obterConfig() || this.configAtual
     this.ultimoTipo = tipo
-    this.exibirCarregando()
-
-    try {
-      // Nesta altura o estado da rodada ja foi persistido, entao
-      // getRodadaAtual() devolve o numero exato desta rodada
-      const pergunta = await this.gerarPergunta(vencedor.nome, tipo, config.nivel, this.getRodadaAtual())
-      this.exibirPergunta(pergunta, config)
-    } catch (erro) {
-      console.error("Erro ao gerar pergunta", erro)
-      const fallback = this.obterPerguntaFallback(vencedor.nome, tipo, config.nivel)
-      this.exibirPergunta(fallback, config)
-    }
+    // Nesta altura o estado da rodada ja foi persistido, entao
+    // getRodadaAtual() devolve o numero exato desta rodada
+    await this.gerarEExibirPergunta(vencedor.nome, tipo, config.nivel, this.getRodadaAtual(), config)
   }
 
   private async gerarPerguntaAPI(nome: string, tipo: "verdade" | "consequencia", nivel: NivelPicancia, rodada: number): Promise<string> {
@@ -749,8 +838,8 @@ export class Menu {
     return this.rodadaAtual
   }
 
-  private deveUsarBanco(): boolean {
-    const rodada = this.getRodadaAtual()
+  /** Usa a rodada recebida pelo chamador; reler o estado aqui atrasava 1 rodada. */
+  private deveUsarBanco(rodada: number): boolean {
     if (rodada < 20) {
       return false
     }
@@ -761,7 +850,7 @@ export class Menu {
   }
 
   private async gerarPergunta(nome: string, tipo: "verdade" | "consequencia", nivel: NivelPicancia, rodada: number): Promise<string> {
-    if (this.deveUsarBanco()) {
+    if (this.deveUsarBanco(rodada)) {
       const pergunta = this.selecionarPerguntaBanco(tipo, nivel)
       if (pergunta) {
         this.perguntasUsadas.add(pergunta)
@@ -821,13 +910,9 @@ export class Menu {
     this.atualizarBotaoReroll(true)
   }
 
-  private exibirPerguntaFallback(vencedor: Participante, config: ConfigJogo): void {
-    const tipoFallback = config.modo === ModoJogo.DESAFIO ? "consequencia" : "verdade"
-    const pergunta = this.obterPerguntaFallback(vencedor.nome, tipoFallback as "verdade" | "consequencia", config.nivel)
-    this.exibirPergunta(pergunta, config)
-  }
-
   private proximaRodada(): void {
+    this.cancelarGeracaoPergunta()
+
     // Esconder a pergunta atual, preparar para nova rodada
     const perguntaElem = document.getElementById('pergunta') as HTMLElement
     const resultadoElem = document.getElementById('resultado') as HTMLElement
@@ -874,24 +959,21 @@ export class Menu {
   private async handleReroll(): Promise<void> {
     if (this.rerollUsos >= this.maxReroll) return
 
-    this.rerollUsos++
-    this.atualizarBotaoReroll()
-
     // Gerar nova pergunta/desafio mantendo o mesmo participante e config
     const config = this.obterConfig()
     if (!config || !this.wheelVencedor) return
 
-    // Gerar nova pergunta usando o mesmo tipo da rodada atual
-    // (reroll mantem a rodada, logo o revezamento de modelos nao avanca)
-    this.exibirCarregando()
-    try {
-      const pergunta = await this.gerarPergunta(this.wheelVencedor.nome, this.ultimoTipo, config.nivel, this.getRodadaAtual())
-      this.exibirPergunta(pergunta, config)
-    } catch (erro) {
-      console.error("Erro ao reroll pergunta", erro)
-      const fallback = this.obterPerguntaFallback(this.wheelVencedor.nome, this.ultimoTipo, config.nivel)
-      this.exibirPergunta(fallback, config)
-    }
+    this.rerollUsos++
+    this.atualizarBotaoReroll()
+
+    // Reroll mantem a rodada, logo o revezamento de modelos nao avanca.
+    await this.gerarEExibirPergunta(
+      this.wheelVencedor.nome,
+      this.ultimoTipo,
+      config.nivel,
+      this.getRodadaAtual(),
+      config
+    )
   }
 
   /**
