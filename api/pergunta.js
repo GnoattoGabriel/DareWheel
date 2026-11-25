@@ -5,17 +5,19 @@
 
 const MAX_ULTIMAS = 15
 
-// Cadeias por nivel: Groq fora de novo (desafios fracos) - Gemini lidera,
-// resto de fallback. Para reativar, recolocar a entrada groq no topo.
-// Aliases "-latest" acompanham o modelo atual.
+// Cadeia unica para todos os niveis e tipos: Groq (gpt-oss-120b) e Gemini
+// alternam a primeira tentativa por rodada; OpenRouter e o ultimo fallback.
+const MODELO_GROQ = process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b'
+const MODELO_GEMINI = process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest'
 const CADEIA_PADRAO = [
-  { modelo: process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest', provedor: 'gemini' },
-  { modelo: 'gemini-flash-latest', provedor: 'gemini' },
+  { modelo: MODELO_GROQ, provedor: 'groq' },
+  { modelo: MODELO_GEMINI, provedor: 'gemini' },
   { modelo: 'openrouter/free', provedor: 'openrouter' },
 ]
 const CADEIA_NSFW = [
-  { modelo: 'nvidia/nemotron-3-ultra-550b-a55b:free', provedor: 'openrouter' },
-  { modelo: process.env.GEMINI_MODEL ?? 'gemini-flash-lite-latest', provedor: 'gemini' },
+  { modelo: MODELO_GROQ, provedor: 'groq' },
+  { modelo: MODELO_GEMINI, provedor: 'gemini' },
+  { modelo: 'openrouter/free', provedor: 'openrouter' },
 ]
 
 function cadeiaParaNivel(nivel) {
@@ -23,9 +25,9 @@ function cadeiaParaNivel(nivel) {
 }
 
 /**
- * Revezamento por rodada: as duas primeiras da cadeia (Groq e Gemini)
- * alternam a primeira tentativa; o resto segue como fallback na ordem.
- * Rodadas impares comecam no Groq, pares no Gemini.
+ * Revezamento por rodada: Groq e Gemini alternam a primeira tentativa;
+ * OpenRouter segue como fallback na ordem. Impares comecam no Groq,
+ * pares no Gemini.
  */
 function ordenarPorRodada(cadeia, rodada) {
   if (cadeia.length > 1 && rodada % 2 === 0) {
@@ -40,27 +42,40 @@ const ENDPOINT_GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models
 const ENDPOINT_OPENROUTER = 'https://openrouter.ai/api/v1/chat/completions'
 const TIMEOUT_POR_MODELO_MS = 15000
 
-const NIVEIS = {
-  sfw: 'Objetivo: leve, engraçado, sem constrangimento sério. Ideal para grupos que não se conhecem bem; Proibido: qualquer insinuação romântica/sexual, temas polêmicos, desafios físicos arriscados, Exemplos de verdade: preferências pessoais, curiosidades bobas, memórias engraçadas; Exemplos de desafio: imitar alguém, cantar um trecho, fazer uma careta, contar uma piada',
-  moderado: 'Objetivo: um pouco mais pessoal e ousado, pode incluir romance leve, opiniões e situações constrangedoras "de boa"; Proibido: conteúdo sexual explícito, humilhação pesada, exposição de segredos sérios; Exemplos de verdade: paqueras, momentos vergonhosos, opiniões sobre alguém do grupo; Exemplos de desafio: mandar uma mensagem engraçada para alguém, dançar, simular uma cena de novela',
-  nsfw: 'explícita e ousada, para maiores de 18 anos consentidos. Objetivo: mais picante, flertoso e adulto, mas ainda ADEQUADO para ser dito/feito em público; Pode incluir: perguntas sobre vida amorosa/sexual ',
+const BASE = [
+  'Você escreve o texto de uma rodada do DareWheel, jogo de verdade ou consequência.',
+  'O jogo é presencial: o grupo está reunido na mesma sala. Responda em português do Brasil, coloquial e natural.',
+]
+
+// Regras especificas por tipo: antes verdade e desafio compartilhavam a mesma
+// instrucao e o modelo cava no padrao ("Qual foi..." / "Faça...").
+const REGRAS_TIPO = {
+  verdade: 'Crie UMA PERGUNTA DE VERDADE: a pessoa sorteada responde honestamente em voz alta. Termine com "?". Não inclua a resposta e não pergunte "você prefere A ou B?".',
+  consequencia: 'Crie UM DESAFIO: uma ação concreta, executada na hora, diante do grupo, em até 30 segundos, sem precisar de celular ou objeto. Diga o que fazer e como o grupo vai saber que foi cumprido.',
 }
 
-const TIPOS = {
-  verdade: 'uma pergunta de VERDADE (a pessoa responde honestamente)',
-  consequencia: 'um desafio/CONSEQUÊNCIA (a pessoa executa uma ação)',
+const NIVEIS = {
+  sfw: 'Tom leve e engraçado, seguro para quem se conhece pouco. Sem romance, sexualidade, temas polêmicos ou constrangimento sério. Use preferências bobas, memórias engraçadas, imitações, caretas e mini-performances.',
+  moderado: 'Tom pessoal e ousado na medida: romance leve, opiniões, vergonha "de boa", paquera. Sem conteúdo sexual explícito, humilhação ou segredos sérios. Pode envolver outra pessoa da roda de forma respeitosa.',
+  nsfw: 'Tom adulto, picante e flertoso, para maiores de 18 anos que consentiram em jogar. Pode falar de vida amorosa e sexual em termos gerais e criar provocações sensuais. Ainda deve ser possível dizer ou fazer na frente do grupo: sem atos sexuais explícitos, sem posições sexuais e sem obrigar contato físico.',
 }
+
+const TEMAS = [
+  'humor', 'curiosidade', 'memória', 'relacionamento',
+  'situação constrangedora', 'criatividade', 'improviso', 'interação entre jogadores',
+]
 
 // Freio só para desafios NSFW: verdades seguem explícitas; desafios evitam
 // posições sexuais explícitas e atos performáticos, preferindo provocação
-// de fala, revelação e paquera
+// de fala, revelação e paquera. Vale "prefira" em vez de proibição absoluta:
+// banir o celular de vez fez o modelo viciar em outros padroes.
 const FREIO_DESAFIO_NSFW =
-  ' '
+  'Nos desafios NSFW, prefira fala, revelação e paquera; evite posições sexuais e atos performáticos.'
 
 // Desafios ao vivo: o modelo vicia em "grave/envie áudio/vídeo no grupo";
-// a graça da festa é a ação na roda, não no celular
+// a graça da festa é a ação na roda, não no celular. Cota em vez de veto.
 const DESAFIO_SEM_CELULAR =
-  ' '
+  'Prefira ações ao vivo na roda. No máximo 1 em cada 5 desafios pode envolver celular; nunca exija gravar ou enviar áudio, vídeo ou foto.'
 
 function json(statusCode, corpo) {
   return new Response(JSON.stringify(corpo), {
@@ -97,7 +112,7 @@ function extrairPergunta(conteudo, tipo) {
     }
   }
   // 3) Resgate generico: strings citadas longas que parecem pergunta/desafio
-  const candidatas = conteudo.match(/"([^"\\\n]{15,300})"/g) ?? []
+  const candidatas = conteudo.match(/"([^"\\\n]{15,380})"/g) ?? []
   let melhor = null
   for (const bruta of candidatas) {
     try {
@@ -126,7 +141,7 @@ function pareceInvalida(texto, tipo) {
   const interrogacoes = (limpo.match(/\?/g) || []).length
   return (
     limpo.length < 10 ||
-    limpo.length > 280 ||
+    limpo.length > 380 ||
     /\n/.test(limpo) ||
     /[<>]/.test(limpo) ||                                  // placeholders tipo <text>
     /^[a-záéíóúâêôãõç]+\s*:/i.test(limpo) ||               // rotulos tipo "Perto:"
@@ -154,8 +169,6 @@ async function chamarGemini(modelo, system, apiKey, sinal) {
       contents: [{ role: 'user', parts: [{ text: 'Gere a próxima pergunta do jogo.' }] }],
       generationConfig: {
         temperature: 1,
-        // Modelos com thinking consomem tokens antes do conteudo final
-        maxOutputTokens: 2048,
         responseMimeType: 'application/json',
       },
       // Relaxado para permitir perguntas picantes do nivel NSFW;
@@ -202,7 +215,6 @@ async function chamarGroq(modelo, system, apiKey, sinal) {
         { role: 'user', content: 'Gere a próxima pergunta do jogo.' },
       ],
       temperature: 1,
-      max_tokens: 900,
       response_format: { type: 'json_object' },
     }),
     signal: sinal,
@@ -234,8 +246,6 @@ async function chamarOpenRouter(modelo, system, apiKey, sinal) {
         { role: 'user', content: 'Gere a próxima pergunta do jogo.' },
       ],
       temperature: 1,
-      // Modelos de raciocinio consomem tokens "pensando" antes do conteudo
-      max_tokens: 900,
       response_format: { type: 'json_object' },
       // Modelos de raciocinio gratuitos: nao devolver tokens de "thinking"
       reasoning: { exclude: true },
@@ -269,10 +279,11 @@ export async function POST(request) {
 
   const { tipo, nivel, nome, ultimas, rodada } = corpo ?? {}
 
-  if (!TIPOS[tipo] || !NIVEIS[nivel]) {
+  if (!REGRAS_TIPO[tipo] || !NIVEIS[nivel]) {
     return json(400, { erro: 'Campos obrigatórios ausentes ou inválidos: tipo, nivel' })
   }
-  // Rodada opcional (clientes antigos nao enviam): default 1 = comeca no Groq
+  // Rodada opcional (clientes antigos nao enviam): default 1 = começa no
+  // primeiro modelo da cadeia do nivel
   const numeroRodada = Number.isInteger(rodada) && rodada >= 1 ? rodada : 1
   if (typeof nome !== 'string' || nome.trim().length === 0 || nome.length > 40) {
     return json(400, { erro: 'Campo nome inválido' })
@@ -290,22 +301,18 @@ export async function POST(request) {
   }
 
   const system = [
-    'Você cria perguntas para um jogo brasileiro de festa chamado Verdade ou Consequência.',
-    'Responda SEMPRE em português do Brasil, linguagem natural e coloquial.',
-    'o jogo está sendo jogando presencialmente, e nao virtualmente.',
-    `Crie ${TIPOS[tipo]}.`,
-    `A pergunta deve ser ${NIVEIS[nivel]}.`,
-    tipo === 'consequencia' && nivel === 'nsfw' ? FREIO_DESAFIO_NSFW : '',
+    ...BASE,
+    REGRAS_TIPO[tipo],
+    `Nível: ${NIVEIS[nivel]}`,
+    'Não use nomes próprios na pergunta; fale de "alguém da roda" de forma genérica.',
     tipo === 'consequencia' ? DESAFIO_SEM_CELULAR : '',
-    'Não mencione nomes de pessoas na pergunta. Evite repetir perguntas ou desafios muito semelhantes.',
-    'Alterne entre: humor; curiosidades; histórias pessoais; relacionamentos; situações constrangedoras; criatividade; improvisação; interação entre jogadores',
-    'Varie o início e a estrutura das frases a cada pergunta, em qualquer modo e nível; evite repetir o mesmo padrão (verdades: nem só "Qual foi...", nem só "Já..."; desafios: nem só "Faça...")',
-    'A pergunta deve ter no máximo 3 frases, ser direta.',
+    tipo === 'consequencia' && nivel === 'nsfw' ? FREIO_DESAFIO_NSFW : '',
+    `Tema desta rodada: ${TEMAS[(numeroRodada - 1) % TEMAS.length]}. Use como inspiração, mas não escreva o nome do tema na saída.`,
+    'Escreva de 1 a 2 frases, no máximo 380 caracteres, sem quebras de linha, sem markdown e sem aspas ao redor.',
     historico.length > 0
-      ? `IMPORTANTE: NÃO repita NENHUMA das perguntas abaixo. Gere uma pergunta COMPLETAMENTE DIFERENTE em tema, estrutura e palavras-chave.\nPerguntas já usadas (não repita nem varie levemente):\n${historico.map((q) => `- ${q}`).join('\n')}`
+      ? `NÃO repita nenhuma destas perguntas: mude tema, estrutura e palavras-chave.\n${historico.map((q) => `- ${q}`).join('\n')}`
       : '',
-    'Não mostre raciocínio, planejamento ou comentários - apenas o resultado final.',
-    'Responda APENAS com JSON válido no formato {"pergunta": "<texto da pergunta>"} sem markdown.',
+    'Não mostre raciocínio nem comentários. Responda SOMENTE com JSON válido no formato {"pergunta": "<texto>"}.',
   ]
     .filter(Boolean)
     .join(' ')
