@@ -6,7 +6,10 @@
   "scripts": {
     "dev:local": "node scripts/dev-local.mjs",
     "build": "tsc && node scripts/build-bundle.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:api": "node --check api/pergunta.js",
+    "verifica:banco": "node scripts/verifica-banco.mjs",
+    "check": "npm run typecheck && npm run check:api && npm run verifica:banco"
   },
   "keywords": [],
   "author": "",
