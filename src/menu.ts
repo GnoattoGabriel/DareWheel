@@ -18,6 +18,10 @@ const BANCO_APOS_RODADA = lerNumero('__BANCO_APOS_RODADA__', 20)
 const BANCO_CADA_RODADAS = lerNumero('__BANCO_CADA_RODADAS__', 3)
 
 const MAX_PERGUNTA_CUSTOM = 380
+/** Chances de usar uma pergunta do jogador no modo online (quando houver). */
+const CHANCE_CUSTOM_ONLINE = 0.5
+/** Cada pergunta do jogador vale varias no sorteo do banco. */
+const PESO_CUSTOM = 5
 const SUFIXO_BANCO = ' /bkp'
 const SUFIXO_CUSTOM = ' /custom'
 const TIPOS_PERGUNTA: TipoPergunta[] = ['verdade', 'consequencia']
@@ -1000,15 +1004,22 @@ export class Menu {
     return escolhida
   }
 
+  /** Sortea uma pergunta do jogador. Pode se repetir a vontade. */
+  private selecionarPerguntaCustom(tipo: TipoPergunta, nivel: NivelPicancia): string | null {
+    const customizadas = (this.perguntasCustom[nivel]?.[tipo] ?? []).map((q) => `${q}${SUFIXO_CUSTOM}`)
+    if (customizadas.length === 0) return null
+    return customizadas[Math.floor(Math.random() * customizadas.length)]
+  }
+
   /**
    * Modo offline: banco fixo + perguntas do jogador. Nunca chama a API.
    * As perguntas customizadas recebem um sufixo apenas em memoria, para
    * exibir a origem sem poluir o texto salvo no localStorage, e podem
-   * ser sorteadas quantas vezes quiser.
+   * ser sorteadas quantas vezes quiser. Cada uma pesa PESO_CUSTOM vezes
+   * mais que uma pergunta fixa.
    */
   private selecionarPerguntaOffline(tipo: TipoPergunta, nivel: NivelPicancia): string | null {
     const fixas = BANCOS_PERGUNTAS[nivel]?.[tipo] ?? []
-    const customizadas = (this.perguntasCustom[nivel]?.[tipo] ?? []).map((q) => `${q}${SUFIXO_CUSTOM}`)
 
     // As perguntas do jogador podem se repetir a vontade: nunca entram no
     // historico anti-repeticao. Apenas o banco fixo evita repeticoes.
@@ -1019,7 +1030,11 @@ export class Menu {
       fixasDisponiveis = [...fixas]
     }
 
-    const candidatos = [...fixasDisponiveis, ...customizadas]
+    const customizadas = (this.perguntasCustom[nivel]?.[tipo] ?? []).map((q) => `${q}${SUFIXO_CUSTOM}`)
+    const candidatos: string[] = [...fixasDisponiveis]
+    for (const pergunta of customizadas) {
+      for (let i = 0; i < PESO_CUSTOM; i++) candidatos.push(pergunta)
+    }
     if (candidatos.length === 0) return null
 
     const escolhida = candidatos[Math.floor(Math.random() * candidatos.length)]
@@ -1034,7 +1049,7 @@ export class Menu {
     const chaveTipo: TipoPergunta = tipo === "verdade" ? "verdade" : "consequencia"
     const doBanco = this.modoOffline
       ? this.selecionarPerguntaOffline(chaveTipo, nivel)
-      : this.selecionarPerguntaBanco(chaveTipo, nivel)
+      : (this.selecionarPerguntaCustom(chaveTipo, nivel) ?? this.selecionarPerguntaBanco(chaveTipo, nivel))
 
     return (
       doBanco ??
@@ -1101,14 +1116,22 @@ export class Menu {
   }
 
   private async gerarPergunta(nome: string, tipo: "verdade" | "consequencia", nivel: NivelPicancia, rodada: number): Promise<string> {
+    const chaveTipo: TipoPergunta = tipo === "verdade" ? "verdade" : "consequencia"
+
     if (this.modoOffline) {
-      const chaveTipo: TipoPergunta = tipo === "verdade" ? "verdade" : "consequencia"
       return (
         this.selecionarPerguntaOffline(chaveTipo, nivel) ??
         (tipo === "verdade"
           ? "Qual a qualidade que você mais valoriza em um amigo?"
           : "Faça 10 polichinelos agora!")
       )
+    }
+
+    // No modo online as perguntas do jogador tem prioridade sobre a IA
+    // e sobre o banco fixo quando existem para este nivel/tipo.
+    if (Math.random() < CHANCE_CUSTOM_ONLINE) {
+      const custom = this.selecionarPerguntaCustom(chaveTipo, nivel)
+      if (custom) return custom
     }
 
     if (this.deveUsarBanco(rodada)) {
@@ -1123,7 +1146,7 @@ export class Menu {
       return pergunta
     } catch (erro) {
       console.error("Erro ao gerar pergunta via API, caindo no banco", erro)
-      const fallback = this.selecionarPerguntaBanco(tipo, nivel)
+      const fallback = this.selecionarPerguntaCustom(chaveTipo, nivel) ?? this.selecionarPerguntaBanco(tipo, nivel)
       if (fallback) {
         this.perguntasUsadas.add(fallback)
         return fallback
