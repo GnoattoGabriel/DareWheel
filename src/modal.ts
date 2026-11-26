@@ -122,7 +122,7 @@ export class Modal {
     }
   }
 
-  open(titulo: string, mensagem: string, placeholder: string = 'Nome opcional'): Promise<string | null> {
+  open(titulo: string, mensagem: string, placeholder: string = 'Nome opcional', maxLength?: number): Promise<string | null> {
     if (this.isOpen) return Promise.resolve(null)
     return new Promise((resolve) => {
       this.ultimoFoco = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -136,6 +136,11 @@ export class Modal {
       messageEl.textContent = mensagem
       this.inputEl.placeholder = placeholder
       this.inputEl.value = ''
+      if (typeof maxLength === 'number' && maxLength > 0) {
+        this.inputEl.maxLength = maxLength
+      } else {
+        this.inputEl.removeAttribute('maxlength')
+      }
       this.inputWrapper.style.display = 'block'
 
       this.overlay.style.display = 'flex'

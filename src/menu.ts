@@ -1,6 +1,6 @@
 import { ConfigJogo, EstadoJogo, ModoJogo, NivelPicancia, Participante } from "./types.js"
 import { ResultadoGiro, Wheel } from "./wheel.js"
-import { BANCOS_PERGUNTAS, TipoPergunta } from "./levels.js"
+import { BANCOS_PERGUNTAS, BancoPerguntas, TipoPergunta } from "./levels.js"
 import { audio } from "./audio.js"
 import { pedirPergunta } from "./api.js"
 import { modal } from "./modal.js"
@@ -17,6 +17,16 @@ function lerNumero(valor: string, padrao: number): number {
 const BANCO_APOS_RODADA = lerNumero('__BANCO_APOS_RODADA__', 20)
 const BANCO_CADA_RODADAS = lerNumero('__BANCO_CADA_RODADAS__', 3)
 
+const MAX_PERGUNTA_CUSTOM = 380
+const SUFIXO_BANCO = ' /bkp'
+const SUFIXO_CUSTOM = ' /custom'
+const TIPOS_PERGUNTA: TipoPergunta[] = ['verdade', 'consequencia']
+const ROTULO_NIVEL: Record<NivelPicancia, string> = {
+  [NivelPicancia.SFW]: 'SFW',
+  [NivelPicancia.MODERADO]: 'Moderado',
+  [NivelPicancia.NSFW]: 'NSFW +18',
+}
+
 export class Menu {
   private static readonly EMOJIS_DISPONIVEIS = [
     "😈", "🦄", "👽", "🤖", "🐸", "🦃", "🍕", "💀",
@@ -28,6 +38,12 @@ export class Menu {
   private readonly configKey = "darewheel_config"
 
   private readonly estadoKey = "darewheel_estado"
+  private readonly perguntasCustomKey = "darewheel_perguntas_custom"
+
+  /** Perguntas escritas pelo jogador, separadas por nível e tipo. */
+  private perguntasCustom: BancoPerguntas = Menu.criarBancoVazio()
+  /** Jogo offline nunca chama a API: apenas banco fixo + perguntas do jogador. */
+  private modoOffline: boolean = false
 
   private wheel: Wheel | null = null
   private rerollUsos: number = 0
@@ -41,11 +57,31 @@ export class Menu {
   private geracaoPergunta: number = 0
   private timerDemora: number | null = null
 
+  private static criarBancoVazio(): BancoPerguntas {
+    return {
+      [NivelPicancia.SFW]: { verdade: [], consequencia: [] },
+      [NivelPicancia.MODERADO]: { verdade: [], consequencia: [] },
+      [NivelPicancia.NSFW]: { verdade: [], consequencia: [] },
+    }
+  }
+
+  /** Texto de uma linha, sem marcadores de origem e dentro do limite de 380. */
+  private static limparTextoPergunta(texto: string): string {
+    return texto
+      .replace(/[\u0000-\u001F\u007F]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/\s+\/(?:bkp|custom)\s*$/i, '')
+      .trim()
+      .slice(0, MAX_PERGUNTA_CUSTOM)
+      .trimEnd()
+  }
+
   constructor() {
     this.inicializar()
   }
 
   private inicializar(): void {
+    this.carregarPerguntasCustom()
     this.carregarConfig()
     this.carregarPerguntasUsadas()
     this.adicionarEventListeners()
@@ -109,6 +145,135 @@ export class Menu {
       // Config corrompida nao pode derrubar a pagina inteira.
       console.error("Config salva invalida - usando padrao", erro)
       localStorage.removeItem(this.configKey)
+    }
+  }
+
+  private carregarPerguntasCustom(): void {
+    const salvo = localStorage.getItem(this.perguntasCustomKey)
+    if (!salvo) return
+    try {
+      const normalizado = this.normalizarPerguntasCustom(JSON.parse(salvo))
+      if (!normalizado) throw new Error('formato invalido')
+      this.perguntasCustom = normalizado
+    } catch (erro) {
+      // localStorage corrompido nao pode derrubar o menu.
+      console.error("Perguntas customizadas invalidas - descartadas", erro)
+      localStorage.removeItem(this.perguntasCustomKey)
+    }
+  }
+
+  /** Aceita apenas perguntas bem formadas; descarta entradas invalidas. */
+  private normalizarPerguntasCustom(valor: unknown): BancoPerguntas | null {
+    if (!valor || typeof valor !== 'object') return null
+    const bruto = valor as Record<string, unknown>
+    const resultado = Menu.criarBancoVazio()
+
+    for (const nivel of Object.values(NivelPicancia)) {
+      const blocoNivel = bruto[nivel]
+      if (!blocoNivel || typeof blocoNivel !== 'object') continue
+      const bloco = blocoNivel as Record<string, unknown>
+      for (const tipo of TIPOS_PERGUNTA) {
+        const lista = bloco[tipo]
+        if (!Array.isArray(lista)) continue
+        const vistos = new Set<string>()
+        for (const item of lista) {
+          if (typeof item !== 'string') continue
+          const texto = Menu.limparTextoPergunta(item)
+          if (!texto || vistos.has(texto)) continue
+          vistos.add(texto)
+          resultado[nivel][tipo].push(texto)
+        }
+      }
+    }
+    return resultado
+  }
+
+  private salvarPerguntasCustom(): void {
+    localStorage.setItem(this.perguntasCustomKey, JSON.stringify(this.perguntasCustom))
+    this.renderizarPerguntasCustom()
+  }
+
+  private async adicionarPerguntaCustom(tipo: TipoPergunta): Promise<void> {
+    const nivel = this.obterConfig()?.nivel ?? NivelPicancia.SFW
+    const rotulo = tipo === 'verdade' ? 'verdade' : 'desafio'
+    const texto = await modal.open(
+      `Nova ${rotulo}`,
+      `Digite uma ${rotulo} para o nível ${ROTULO_NIVEL[nivel]}. Máximo de ${MAX_PERGUNTA_CUSTOM} caracteres.`,
+      `Sua ${rotulo}...`,
+      MAX_PERGUNTA_CUSTOM
+    )
+    if (!texto) return
+
+    const limpo = Menu.limparTextoPergunta(texto)
+    if (!limpo) {
+      alert("Digite uma pergunta válida.")
+      return
+    }
+    if (this.perguntasCustom[nivel][tipo].includes(limpo)) {
+      alert("Essa pergunta já foi adicionada neste nível.")
+      return
+    }
+
+    this.perguntasCustom[nivel][tipo].push(limpo)
+    this.salvarPerguntasCustom()
+  }
+
+  private removerPerguntaCustom(nivel: NivelPicancia, tipo: TipoPergunta, texto: string): void {
+    this.perguntasCustom[nivel][tipo] = this.perguntasCustom[nivel][tipo].filter((q) => q !== texto)
+    this.salvarPerguntasCustom()
+  }
+
+  /** Lista do nível atual, com rótulo de tipo e botão de remover por item. */
+  private renderizarPerguntasCustom(): void {
+    const nivel = this.obterConfig()?.nivel ?? NivelPicancia.SFW
+    const rotuloNivel = document.getElementById('custom-nivel')
+    if (rotuloNivel) rotuloNivel.textContent = ROTULO_NIVEL[nivel]
+
+    const lista = document.getElementById('custom-lista')
+    if (!lista) return
+    lista.replaceChildren()
+
+    const itens: Array<{ tipo: TipoPergunta; texto: string }> = []
+    for (const tipo of TIPOS_PERGUNTA) {
+      for (const texto of this.perguntasCustom[nivel][tipo]) {
+        itens.push({ tipo, texto })
+      }
+    }
+
+    if (itens.length === 0) {
+      const vazio = document.createElement('p')
+      vazio.className = 'lista-vazia'
+      vazio.textContent = 'Nenhuma pergunta adicionada neste nível ainda.'
+      lista.appendChild(vazio)
+      return
+    }
+
+    for (const item of itens) {
+      const linha = document.createElement('div')
+      linha.className = 'custom-item'
+
+      const tag = document.createElement('span')
+      tag.className = 'custom-tipo'
+      tag.textContent = item.tipo === 'verdade' ? 'Verdade' : 'Desafio'
+
+      const texto = document.createElement('span')
+      texto.className = 'custom-texto'
+      texto.textContent = item.texto
+
+      const remover = document.createElement('button')
+      remover.type = 'button'
+      remover.className = 'remover-custom'
+      remover.textContent = '×'
+      remover.setAttribute(
+        'aria-label',
+        `Remover ${item.tipo === 'verdade' ? 'verdade' : 'desafio'}: ${item.texto}`
+      )
+      remover.addEventListener('click', () => {
+        this.removerPerguntaCustom(nivel, item.tipo, item.texto)
+      })
+
+      linha.append(tag, texto, remover)
+      lista.appendChild(linha)
     }
   }
 
@@ -190,11 +355,17 @@ export class Menu {
     // Atualizar lista de participantes
     this.atualizarParticipantes(config.participantes)
 
-    // Habilitar botão iniciar se tiver participantes
+    // Habilitar botões de início se tiver participantes
     const btnIniciar = document.getElementById('btn-iniciar') as HTMLButtonElement | null
+    const btnOffline = document.getElementById('btn-offline') as HTMLButtonElement | null
     if (btnIniciar) {
       btnIniciar.disabled = config.participantes.length < 2
     }
+    if (btnOffline) {
+      btnOffline.disabled = config.participantes.length < 2
+    }
+
+    this.renderizarPerguntasCustom()
   }
 
   private atualizarParticipantes(participantes: Participante[]): void {
@@ -300,10 +471,26 @@ export class Menu {
       elemento.addEventListener('click', () => this.selecionarNivel(elemento))
     })
 
-    // Botão iniciar
+    // Botão iniciar (com API)
     const btnIniciar = document.getElementById('btn-iniciar') as HTMLButtonElement | null
     if (btnIniciar) {
-      btnIniciar.addEventListener('click', () => this.iniciarJogo())
+      btnIniciar.addEventListener('click', () => void this.iniciarJogo())
+    }
+
+    // Botão offline (somente banco + perguntas do jogador)
+    const btnOffline = document.getElementById('btn-offline') as HTMLButtonElement | null
+    if (btnOffline) {
+      btnOffline.addEventListener('click', () => void this.iniciarJogo(true))
+    }
+
+    // Perguntas do jogador
+    const btnAddVerdade = document.getElementById('btn-add-verdade') as HTMLButtonElement | null
+    const btnAddDesafio = document.getElementById('btn-add-desafio') as HTMLButtonElement | null
+    if (btnAddVerdade) {
+      btnAddVerdade.addEventListener('click', () => void this.adicionarPerguntaCustom('verdade'))
+    }
+    if (btnAddDesafio) {
+      btnAddDesafio.addEventListener('click', () => void this.adicionarPerguntaCustom('consequencia'))
     }
 
     // Botão proxima rodada = a propria roleta
@@ -418,7 +605,7 @@ export class Menu {
       })
   }
 
-  private async iniciarJogo(): Promise<void> {
+  private async iniciarJogo(modoOffline: boolean = false): Promise<void> {
     const config = this.obterConfig()
     if (!config || config.participantes.length < 2) {
       alert("Adicione pelo menos 2 participantes para iniciar o jogo!")
@@ -437,6 +624,7 @@ export class Menu {
       }
     }
 
+    this.modoOffline = modoOffline
     this.cancelarGeracaoPergunta()
 
     // Esconder menu, mostrar área do jogo
@@ -490,6 +678,7 @@ export class Menu {
 
   private voltarAoMenu(): void {
     this.cancelarGeracaoPergunta()
+    this.modoOffline = false
 
     // Esconder área do jogo
     const areaJogo = document.getElementById('area-jogo') as HTMLElement
@@ -723,7 +912,7 @@ export class Menu {
     const geracao = ++this.geracaoPergunta
     const btnReroll = document.getElementById('btn-reroll') as HTMLButtonElement | null
     if (btnReroll) btnReroll.disabled = true
-    this.exibirCarregando()
+    if (!this.modoOffline) this.exibirCarregando()
     try {
       const pergunta = await this.gerarPergunta(nome, tipo, nivel, rodada)
       if (geracao !== this.geracaoPergunta) return
@@ -807,12 +996,38 @@ export class Menu {
     return escolhida
   }
 
+  /**
+   * Modo offline: banco fixo + perguntas do jogador. Nunca chama a API.
+   * As perguntas customizadas recebem um sufixo apenas em memoria, para
+   * exibir a origem sem poluir o texto salvo no localStorage.
+   */
+  private selecionarPerguntaOffline(tipo: TipoPergunta, nivel: NivelPicancia): string | null {
+    const fixas = BANCOS_PERGUNTAS[nivel]?.[tipo] ?? []
+    const customizadas = (this.perguntasCustom[nivel]?.[tipo] ?? []).map((q) => `${q}${SUFIXO_CUSTOM}`)
+    const candidatos = [...fixas, ...customizadas]
+    if (candidatos.length === 0) return null
+
+    let disponiveis = candidatos.filter((q) => !this.perguntasUsadas.has(q))
+    if (disponiveis.length === 0) {
+      // Esgotou: libera apenas esta categoria e receca.
+      for (const q of candidatos) this.perguntasUsadas.delete(q)
+      disponiveis = [...candidatos]
+    }
+
+    const escolhida = disponiveis[Math.floor(Math.random() * disponiveis.length)]
+    this.perguntasUsadas.add(escolhida)
+    return escolhida
+  }
+
   private obterPerguntaFallback(nome: string, tipo: "verdade" | "consequencia", nivel: NivelPicancia): string {
     void nome // mantido na assinatura para uso futuro pela API
     const chaveTipo: TipoPergunta = tipo === "verdade" ? "verdade" : "consequencia"
+    const doBanco = this.modoOffline
+      ? this.selecionarPerguntaOffline(chaveTipo, nivel)
+      : this.selecionarPerguntaBanco(chaveTipo, nivel)
 
     return (
-      this.selecionarPerguntaBanco(chaveTipo, nivel) ??
+      doBanco ??
       (chaveTipo === "verdade"
         ? "Qual a qualidade que você mais valoriza em um amigo?"
         : "Faça 10 polichinelos agora!")
@@ -876,6 +1091,16 @@ export class Menu {
   }
 
   private async gerarPergunta(nome: string, tipo: "verdade" | "consequencia", nivel: NivelPicancia, rodada: number): Promise<string> {
+    if (this.modoOffline) {
+      const chaveTipo: TipoPergunta = tipo === "verdade" ? "verdade" : "consequencia"
+      return (
+        this.selecionarPerguntaOffline(chaveTipo, nivel) ??
+        (tipo === "verdade"
+          ? "Qual a qualidade que você mais valoriza em um amigo?"
+          : "Faça 10 polichinelos agora!")
+      )
+    }
+
     if (this.deveUsarBanco(rodada)) {
       const pergunta = this.selecionarPerguntaBanco(tipo, nivel)
       if (pergunta) {
@@ -905,12 +1130,14 @@ export class Menu {
     const areaJogo = document.getElementById('area-jogo') as HTMLElement | null
 
     if (perguntaElem) {
-      // Construir via DOM - texto da API nunca e injetado como HTML.
-      // Perguntas do banco carregam o sufixo /bkp: vira tag visual,
-      // o texto exibido fica limpo. Perguntas da IA nao tem marcacao.
-      const SUFIXO_BANCO = ' /bkp'
-      const doBanco = pergunta.endsWith(SUFIXO_BANCO)
-      const textoLimpo = doBanco ? pergunta.slice(0, -SUFIXO_BANCO.length) : pergunta
+      // Construir via DOM - texto da API/usuario nunca e injetado como HTML.
+      // Marcadores de origem viram tag visual e sao removidos do texto.
+      const origens = [
+        { sufixo: SUFIXO_BANCO, tag: '📦 banco de perguntas' },
+        { sufixo: SUFIXO_CUSTOM, tag: '✍️ sua pergunta' },
+      ]
+      const origem = origens.find((item) => pergunta.endsWith(item.sufixo))
+      const textoLimpo = origem ? pergunta.slice(0, -origem.sufixo.length) : pergunta
 
       perguntaElem.replaceChildren()
       const p = document.createElement('p')
@@ -918,10 +1145,10 @@ export class Menu {
       strong.textContent = textoLimpo
       p.appendChild(strong)
 
-      if (doBanco) {
+      if (origem) {
         const tag = document.createElement('span')
-        tag.className = 'origem-banco'
-        tag.textContent = '📦 banco de perguntas'
+        tag.className = origem.sufixo === SUFIXO_CUSTOM ? 'origem-banco origem-custom' : 'origem-banco'
+        tag.textContent = origem.tag
         p.appendChild(tag)
       }
 
