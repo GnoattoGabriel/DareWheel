@@ -147,6 +147,52 @@ body::before {
   --cor-meteoro: var(--neon-violeta);
 }
 
+/* Meteoro raro (easter egg): so aparece apos 3 cliques no titulo. */
+.meteoro-raro {
+  position: absolute;
+  top: 24%;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.meteoro-raro::before {
+  content: "";
+  width: 170px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 95, 210, 0.65), #fff);
+  filter: drop-shadow(0 0 8px var(--neon-magenta));
+}
+
+.meteoro-raro-numero {
+  font-family: var(--fonte-display);
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  text-shadow:
+    0 0 8px var(--neon-magenta),
+    0 0 20px var(--neon-ciano),
+    0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.meteoro-raro.disparado {
+  animation: meteoro-raro 3.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+#titulo-jogo {
+  cursor: pointer;
+}
+
+#titulo-jogo:focus-visible {
+  outline: 2px solid var(--acento-claro);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
 #menu-principal,
 #area-jogo {
   position: relative;
@@ -1354,6 +1400,19 @@ input:focus-visible {
   }
 }
 
+@keyframes meteoro-raro {
+  0% {
+    transform: rotate(28deg) translateX(-25vw);
+    opacity: 0;
+  }
+  12% { opacity: 1; }
+  78% { opacity: 1; }
+  100% {
+    transform: rotate(28deg) translateX(120vw);
+    opacity: 0;
+  }
+}
+
 @keyframes boot-in {
   from { opacity: 0; transform: translateY(18px) scale(0.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -1896,7 +1955,8 @@ header h1 {
     animation: none !important;
   }
 
-  .meteoro {
+  .meteoro,
+  .meteoro-raro {
     display: none !important;
   }
 
