@@ -103,24 +103,28 @@ export class Menu {
   }
 
   /**
-   * Jogadores criados antes do sistema de cores ficam com chip cinza.
-   * Atribui uma cor livre da paleta e persiste.
+   * Jogadores antigos podem estar sem cor ou com a paleta antiga. Atribui
+   * cor livre quando falta e converte cores legadas para a paleta neon.
    */
   private migrarCoresLegadas(): void {
     const config = this.obterConfig()
     if (!config) return
 
-    if (!config.participantes.some((p) => !p.cor)) return
-
-    const usadas = new Set(config.participantes.map((p) => p.cor).filter(Boolean))
+    const usadas = new Set<string>()
     const migrados = config.participantes.map((p) => {
-      if (p.cor) return p
+      const convertida = p.cor ? Wheel.migrarCor(p.cor) : undefined
+      if (convertida && /^#[0-9a-fA-F]{6}$/.test(convertida)) {
+        usadas.add(convertida)
+        return convertida === p.cor ? p : { ...p, cor: convertida }
+      }
+
       const cor = PALETA.find((c) => !usadas.has(c)) ?? "#999"
       usadas.add(cor)
       return { ...p, cor }
     })
 
-    this.salvarConfig({ ...config, participantes: migrados })
+    const mudou = migrados.some((p, i) => p.cor !== config.participantes[i].cor)
+    if (mudou) this.salvarConfig({ ...config, participantes: migrados })
   }
 
   private carregarPerguntasUsadas(): void {
@@ -801,7 +805,7 @@ export class Menu {
     for (const p of participantes) {
       const span = document.createElement('span')
       span.className = 'legenda-item'
-      span.style.color = p.cor || '#999'
+      span.style.setProperty('--cor-jogador', p.cor || '#999')
       span.textContent = p.displayName ? `${p.displayName} ${p.nome}` : p.nome
       container.appendChild(span)
     }

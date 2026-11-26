@@ -97,6 +97,13 @@ export class Wheel {
   }
 
   private static readonly CORES = [
+    "#5df2ff", "#ff5fd2", "#a97bff", "#5cffb1",
+    "#ffb347", "#4d8dff", "#ff6b8a", "#b06cff",
+    "#2dd4bf", "#f472b6", "#fbbf24", "#818cf8",
+  ]
+
+  /** Paleta antiga, usada apenas para migrar cores salvas no localStorage. */
+  private static readonly CORES_LEGADAS = [
     "#3182ce", "#e53e3e", "#38a169", "#dd6b20",
     "#805ad5", "#d69e2e", "#319795", "#d53f8c",
     "#4a5568", "#2f855a", "#c05621", "#6b46c1",
@@ -105,6 +112,12 @@ export class Wheel {
   /** Paleta publica para o menu atribuir cor fixa a cada jogador. */
   public static get PALETA_CORES(): string[] {
     return Wheel.CORES
+  }
+
+  /** Converte uma cor da paleta antiga para a posicao equivalente da nova. */
+  public static migrarCor(cor: string): string {
+    const indice = Wheel.CORES_LEGADAS.indexOf(cor)
+    return indice >= 0 ? Wheel.CORES[indice] : cor
   }
 
   private inicializar(): void {
@@ -151,6 +164,12 @@ export class Wheel {
       this.coresPorId.set(participante.id, cor)
     }
     return cor
+  }
+
+  /** Deixa a fatia levemente translucida para o efeito liquid glass. */
+  private corFatia(participante: Participante): string {
+    const cor = this.corDe(participante)
+    return /^#[0-9a-fA-F]{6}$/.test(cor) ? `${cor}e6` : cor
   }
 
   /**
@@ -224,10 +243,10 @@ export class Wheel {
     for (let ciclo = 0; ciclo < k; ciclo++) {
       for (let i = 0; i < qtd; i++) {
         const fim = acumulado + anguloSubFatia[i]
-        // Linha branca fina no fim de cada fatia (separador visual)
+        // Separador ciano fino no fim de cada fatia (linha de navegacao)
         const linha = Math.min(1.2, anguloSubFatia[i] * 0.12)
-        paradas.push(`${this.corDe(this.ordemExibicao[i])} ${acumulado}deg ${fim - linha}deg`)
-        paradas.push(`#f5f2ea ${fim - linha}deg ${fim}deg`)
+        paradas.push(`${this.corFatia(this.ordemExibicao[i])} ${acumulado}deg ${fim - linha}deg`)
+        paradas.push(`#8ff6ff ${fim - linha}deg ${fim}deg`)
         acumulado = fim
         this.fatias.push({ fimAngulo: acumulado, indiceJogador: i })
       }

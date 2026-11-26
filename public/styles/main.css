@@ -715,27 +715,47 @@ header p {
   gap: 0.75rem;
 }
 
-/* Legenda dos participantes ao lado da roleta */
+/* Legenda dos participantes: faixa visivel abaixo da roleta */
 .legenda-participantes {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.5rem;
-  font-size: max(12px, 0.8rem);
-  font-weight: 500;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  padding: 0.4rem 0.75rem;
+  font-size: max(13px, 0.95rem);
+  font-weight: 600;
   color: var(--texto);
-  min-height: 1.5em;
+  background: rgba(5, 4, 15, 0.62);
+  border: 1px solid rgba(93, 242, 255, 0.22);
+  border-radius: 999px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45), inset 0 0 12px rgba(93, 242, 255, 0.08);
+  min-height: 1.8em;
 }
 
 .legenda-item {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.4rem;
   white-space: nowrap;
-  padding: 0.15rem 0.4rem;
+  padding: 0.25rem 0.65rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--borda-suave);
+  color: #fff;
+  background: rgba(14, 10, 38, 0.92);
+  border: 1px solid var(--cor-jogador, var(--neon-ciano));
+  box-shadow: 0 0 12px rgba(93, 242, 255, 0.2), inset 0 0 8px rgba(255, 255, 255, 0.06);
+}
+
+.legenda-item::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--cor-jogador, var(--neon-ciano));
+  box-shadow: 0 0 8px var(--cor-jogador, var(--neon-ciano));
 }
 
 /* Aro de carnaval: lâmpadas que piscam durante o giro */
@@ -793,7 +813,9 @@ header p {
   position: absolute;
   transform: translate(-50%, -50%);
   line-height: 1;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+  filter:
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9))
+    drop-shadow(0 0 4px rgba(93, 242, 255, 0.6));
 }
 
 /* Pulso de embaralhamento: mascara a troca de assentos no inicio do giro */
@@ -1390,19 +1412,35 @@ input:focus-visible {
   100% { opacity: 0; transform: scale(1.6) rotate(16deg); }
 }
 
-/* Painéis com boot escalonado e scanline */
+/* Painéis liquid glass: opacos o suficiente para legibilidade */
 .configuracoes .toggle-group,
 .participantes,
 .acao {
   position: relative;
   overflow: hidden;
-  background: var(--painel);
-  border: 1px solid var(--borda-suave);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 24%, transparent 46%),
+    linear-gradient(160deg, rgba(32, 22, 74, 0.9), rgba(10, 7, 28, 0.94));
+  border: 1px solid rgba(183, 225, 255, 0.38);
   box-shadow:
     0 12px 36px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(93, 242, 255, 0.14),
     inset 0 0 26px rgba(93, 242, 255, 0.06);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px) saturate(150%);
   animation: boot-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+#area-jogo {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 26%, transparent 48%),
+    linear-gradient(160deg, rgba(28, 19, 66, 0.9), rgba(9, 6, 26, 0.94));
+  border-color: rgba(183, 225, 255, 0.34);
+  box-shadow:
+    0 14px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 24px rgba(93, 242, 255, 0.06);
+  backdrop-filter: blur(12px) saturate(140%);
 }
 
 .configuracoes .toggle-group:nth-child(1) { animation-delay: 60ms; }
@@ -1592,11 +1630,25 @@ header h1 {
 
 /* Roleta como painel de navegação */
 #roda {
+  position: relative;
+  overflow: hidden;
   border-color: #07040f;
   box-shadow:
     0 12px 36px rgba(0, 0, 0, 0.7),
     0 0 0 2px rgba(93, 242, 255, 0.22),
     inset 0 0 26px rgba(93, 242, 255, 0.18);
+}
+
+#roda::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.26), transparent 38%),
+    radial-gradient(circle at 70% 76%, rgba(93, 242, 255, 0.12), transparent 46%);
+  box-shadow: inset 0 0 34px rgba(0, 0, 0, 0.55);
 }
 
 .roleta-wrapper:hover #roda {
@@ -1634,6 +1686,13 @@ header h1 {
   filter: drop-shadow(0 0 2px var(--neon-ciano));
 }
 
+.pino-central {
+  border-color: #07040f;
+  box-shadow:
+    0 0 14px rgba(93, 242, 255, 0.55),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+
 /* Resultado com lock-on */
 .resultado {
   position: relative;
@@ -1662,10 +1721,16 @@ header h1 {
 .pergunta {
   margin-top: 1.5rem;
   padding: 1rem;
-  background: var(--painel);
-  border: 1px solid var(--borda-suave);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 26%, transparent 48%),
+    linear-gradient(160deg, rgba(28, 19, 66, 0.9), rgba(9, 6, 26, 0.94));
+  border: 1px solid rgba(183, 225, 255, 0.34);
   border-radius: 14px;
-  box-shadow: inset 0 0 22px rgba(93, 242, 255, 0.07), 0 10px 30px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 14px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 24px rgba(93, 242, 255, 0.06);
+  backdrop-filter: blur(12px) saturate(140%);
 }
 
 .pergunta:empty {
