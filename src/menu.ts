@@ -19,9 +19,9 @@ const BANCO_CADA_RODADAS = lerNumero('__BANCO_CADA_RODADAS__', 3)
 
 const MAX_PERGUNTA_CUSTOM = 380
 /** Chances de usar uma pergunta do jogador no modo online (quando houver). */
-const CHANCE_CUSTOM_ONLINE = 0.5
+const CHANCE_CUSTOM_ONLINE = 0.25
 /** Cada pergunta do jogador vale varias no sorteo do banco. */
-const PESO_CUSTOM = 5
+const PESO_CUSTOM = 2
 const SUFIXO_BANCO = ' /bkp'
 const SUFIXO_CUSTOM = ' /custom'
 const TIPOS_PERGUNTA: TipoPergunta[] = ['verdade', 'consequencia']
