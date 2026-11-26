@@ -223,16 +223,18 @@ header p {
 }
 
 .toggles {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
-  flex-wrap: wrap;
-  justify-content: center;
 }
 
 .toggles .modo-toggle,
 .toggles .nivel-toggle {
-  padding: 0.6rem 1.1rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.6rem 0.5rem;
   font-size: 0.85rem;
+  text-wrap: balance;
   border: 1px solid var(--borda-suave);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.06);
@@ -402,15 +404,16 @@ header p {
 }
 
 .custom-botoes {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
-  flex-wrap: wrap;
-  justify-content: center;
   margin: 0.75rem 0;
 }
 
 .btn-add-custom {
-  padding: 0.55rem 1rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.55rem 0.5rem;
   font-size: 0.85rem;
   font-family: var(--fonte-display);
   font-weight: 600;
@@ -1089,15 +1092,13 @@ header p {
 /* Mobile menu improvements */
 @media (max-width: 640px) {
   .toggle-group .toggles {
-    justify-content: center;
-    flex-wrap: wrap;
     padding-bottom: 0;
   }
 
   .toggles .modo-toggle,
   .toggles .nivel-toggle {
-    flex: 0 1 auto;
-    white-space: nowrap;
+    font-size: 0.76rem;
+    padding-inline: 0.25rem;
   }
 }
 
