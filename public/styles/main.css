@@ -63,7 +63,88 @@ body::before {
     radial-gradient(1px 1px at 22% 88%, #fff 50%, transparent 51%),
     radial-gradient(1.5px 1.5px at 78% 42%, #d8ccff 50%, transparent 51%);
   background-size: 320px 280px, 410px 360px, 480px 420px, 520px 460px, 560px 500px, 620px 540px;
-  animation: twinkle 6s ease-in-out infinite alternate;
+  animation:
+    twinkle 8s ease-in-out infinite alternate,
+    deriva 90s linear infinite;
+}
+
+/* Estrelas maiores com piscada independente e meteoros passageiros. */
+.ceu {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.estrela {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 1px rgba(185, 246, 255, 0.7);
+  opacity: 0.5;
+  animation: piscar var(--dur, 3s) ease-in-out var(--delay, 0s) infinite alternate;
+}
+
+.estrela-1 { top: 11%; left: 16%; --dur: 2.7s; --delay: 0s; }
+.estrela-2 { top: 18%; left: 74%; --dur: 3.9s; --delay: -1.2s; width: 3px; height: 3px; }
+.estrela-3 { top: 29%; left: 42%; --dur: 2.2s; --delay: -0.6s; }
+.estrela-4 { top: 37%; left: 88%; --dur: 4.4s; --delay: -2.8s; }
+.estrela-5 { top: 52%; left: 9%; --dur: 3.1s; --delay: -1.9s; width: 3px; height: 3px; }
+.estrela-6 { top: 63%; left: 61%; --dur: 2.5s; --delay: -0.3s; }
+.estrela-7 { top: 76%; left: 31%; --dur: 4.8s; --delay: -3.4s; }
+.estrela-8 { top: 86%; left: 82%; --dur: 3.6s; --delay: -1.5s; width: 3px; height: 3px; }
+
+.meteoro {
+  --cor-meteoro: var(--neon-ciano);
+  position: absolute;
+  top: var(--top, 10%);
+  left: var(--left, -5%);
+  width: 150px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--cor-meteoro), #fff);
+  filter: drop-shadow(0 0 6px var(--cor-meteoro));
+  opacity: 0;
+  animation: meteoro var(--dur, 10s) linear var(--delay, 0s) infinite;
+}
+
+.meteoro::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px 2px var(--cor-meteoro);
+}
+
+.meteoro-1 {
+  --top: 12%;
+  --left: 0%;
+  --dur: 9s;
+  --delay: -2s;
+  --cor-meteoro: var(--neon-ciano);
+}
+
+.meteoro-2 {
+  --top: 38%;
+  --left: 8%;
+  --dur: 13s;
+  --delay: -7s;
+  --cor-meteoro: var(--neon-magenta);
+}
+
+.meteoro-3 {
+  --top: 64%;
+  --left: -8%;
+  --dur: 17s;
+  --delay: -12s;
+  --cor-meteoro: var(--neon-violeta);
 }
 
 #menu-principal,
@@ -1223,6 +1304,32 @@ input:focus-visible {
   to { opacity: 0.6; }
 }
 
+@keyframes deriva {
+  to {
+    background-position:
+      320px 280px, -410px 360px, 480px -420px,
+      -520px 460px, 560px -500px, -620px 540px;
+  }
+}
+
+@keyframes piscar {
+  from { opacity: 0.15; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1.3); }
+}
+
+@keyframes meteoro {
+  0% {
+    transform: translate3d(-12vw, -8vh, 0) rotate(-34deg) scaleX(0.6);
+    opacity: 0;
+  }
+  8% { opacity: 1; }
+  55% { opacity: 1; }
+  72%, 100% {
+    transform: translate3d(120vw, 62vh, 0) rotate(-34deg) scaleX(1);
+    opacity: 0;
+  }
+}
+
 @keyframes boot-in {
   from { opacity: 0; transform: translateY(18px) scale(0.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -1644,7 +1751,11 @@ header h1 {
 @media (max-width: 640px) {
   body::before {
     opacity: 0.32;
-    animation: none;
+    animation: twinkle 10s ease-in-out infinite alternate;
+  }
+
+  .meteoro-3 {
+    display: none;
   }
 
   .configuracoes .toggle-group,
@@ -1696,5 +1807,15 @@ header h1 {
 
   body::before {
     animation: none !important;
+  }
+
+  .meteoro {
+    display: none !important;
+  }
+
+  .estrela {
+    animation: none !important;
+    opacity: 0.65;
+    transform: none;
   }
 }
