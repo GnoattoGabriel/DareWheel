@@ -103,24 +103,28 @@ export class Menu {
   }
 
   /**
-   * Jogadores criados antes do sistema de cores ficam com chip cinza.
-   * Atribui uma cor livre da paleta e persiste.
+   * Jogadores antigos podem estar sem cor ou com a paleta antiga. Atribui
+   * cor livre quando falta e converte cores legadas para a paleta neon.
    */
   private migrarCoresLegadas(): void {
     const config = this.obterConfig()
     if (!config) return
 
-    if (!config.participantes.some((p) => !p.cor)) return
-
-    const usadas = new Set(config.participantes.map((p) => p.cor).filter(Boolean))
+    const usadas = new Set<string>()
     const migrados = config.participantes.map((p) => {
-      if (p.cor) return p
+      const convertida = p.cor ? Wheel.migrarCor(p.cor) : undefined
+      if (convertida && /^#[0-9a-fA-F]{6}$/.test(convertida)) {
+        usadas.add(convertida)
+        return convertida === p.cor ? p : { ...p, cor: convertida }
+      }
+
       const cor = PALETA.find((c) => !usadas.has(c)) ?? "#999"
       usadas.add(cor)
       return { ...p, cor }
     })
 
-    this.salvarConfig({ ...config, participantes: migrados })
+    const mudou = migrados.some((p, i) => p.cor !== config.participantes[i].cor)
+    if (mudou) this.salvarConfig({ ...config, participantes: migrados })
   }
 
   private carregarPerguntasUsadas(): void {
@@ -201,7 +205,7 @@ export class Menu {
 
   private async adicionarPerguntaCustom(tipo: TipoPergunta): Promise<void> {
     const nivel = this.obterConfig()?.nivel ?? NivelPicancia.SFW
-    const rotulo = tipo === 'verdade' ? 'verdade' : 'desafio'
+    const rotulo = tipo === 'verdade' ? 'verdade' : 'consequência'
     const texto = await modal.open(
       `Nova ${rotulo}`,
       `Digite uma ${rotulo} para o nível ${ROTULO_NIVEL[nivel]}. Máximo de ${MAX_PERGUNTA_CUSTOM} caracteres.`,
@@ -260,7 +264,7 @@ export class Menu {
 
       const tag = document.createElement('span')
       tag.className = 'custom-tipo'
-      tag.textContent = item.tipo === 'verdade' ? 'Verdade' : 'Desafio'
+      tag.textContent = item.tipo === 'verdade' ? 'Verdade' : 'Consequência'
 
       const texto = document.createElement('span')
       texto.className = 'custom-texto'
@@ -272,7 +276,7 @@ export class Menu {
       remover.textContent = '×'
       remover.setAttribute(
         'aria-label',
-        `Remover ${item.tipo === 'verdade' ? 'verdade' : 'desafio'}: ${item.texto}`
+        `Remover ${item.tipo === 'verdade' ? 'verdade' : 'consequência'}: ${item.texto}`
       )
       remover.addEventListener('click', () => {
         this.removerPerguntaCustom(nivel, item.tipo, item.texto)
@@ -486,7 +490,22 @@ export class Menu {
     // Botão offline (somente banco + perguntas do jogador)
     const btnOffline = document.getElementById('btn-offline') as HTMLButtonElement | null
     if (btnOffline) {
-      btnOffline.addEventListener('click', () => void this.iniciarJogo(true))
+      btnOffline.addEventListener('click', () => {
+        const bloco = document.querySelector('.acao-offline') as HTMLElement | null
+        if (bloco) {
+          bloco.classList.remove('ativando')
+          void bloco.offsetWidth
+          bloco.classList.add('ativando')
+          bloco.addEventListener(
+            'animationend',
+            (evento) => {
+              if (evento.target === bloco) bloco.classList.remove('ativando')
+            },
+            { once: true }
+          )
+        }
+        void this.iniciarJogo(true)
+      })
     }
 
     // Perguntas do jogador
@@ -527,7 +546,7 @@ export class Menu {
       })
     }
 
-    // Escolha Verdade/Desafio (modo completo)
+    // Escolha Verdade/Consequência (modo completo)
     const btnEscolhaVerdade = document.getElementById('btn-escolha-verdade') as HTMLButtonElement | null
     const btnEscolhaDesafio = document.getElementById('btn-escolha-desafio') as HTMLButtonElement | null
     if (btnEscolhaVerdade) {
@@ -704,6 +723,8 @@ export class Menu {
       resultadoElem.textContent = ''
     }
 
+    this.definirCombo(0)
+
     // Esconder escolha de modo pendente
     const escolha = document.getElementById('escolha-modo') as HTMLElement | null
     if (escolha) escolha.style.display = 'none'
@@ -779,7 +800,7 @@ export class Menu {
     for (const p of participantes) {
       const span = document.createElement('span')
       span.className = 'legenda-item'
-      span.style.color = p.cor || '#999'
+      span.style.setProperty('--cor-jogador', p.cor || '#999')
       span.textContent = p.displayName ? `${p.displayName} ${p.nome}` : p.nome
       container.appendChild(span)
     }
@@ -853,7 +874,7 @@ export class Menu {
         perguntaAnterior.style.display = 'none'
         perguntaAnterior.replaceChildren()
       }
-      // Modo completo: usuario escolhe Verdade ou Desafio na tela
+      // Modo completo: usuario escolhe Verdade ou Consequência na tela
       this.perguntarVerdadeOuDesafio(boca)
     } else {
       const tipo: "verdade" | "consequencia" =
@@ -881,7 +902,7 @@ export class Menu {
       return
     }
 
-    texto.textContent = `Para ${vencedor.displayName ? `${vencedor.displayName} ${vencedor.nome}` : vencedor.nome}: verdade ou desafio?`
+    texto.textContent = `Para ${vencedor.displayName ? `${vencedor.displayName} ${vencedor.nome}` : vencedor.nome}: verdade ou consequência?`
     this.definirBotoesEscolha(true)
     container.style.display = 'block'
   }
@@ -937,6 +958,7 @@ export class Menu {
     const perguntaElem = document.getElementById('pergunta') as HTMLElement | null
     if (!perguntaElem) return
 
+    perguntaElem.classList.remove('entrando')
     perguntaElem.replaceChildren()
     const p = document.createElement('p')
     p.className = 'pergunta-carregando'
@@ -1076,10 +1098,31 @@ export class Menu {
     resultadoElem.replaceChildren(linha1, document.createElement('br'), linha2)
     resultadoElem.style.display = 'block'
 
-    // Pop-in do card
+    // Pop-in do card (lock-on)
     resultadoElem.classList.remove('pop-in')
     void resultadoElem.offsetWidth
     resultadoElem.classList.add('pop-in')
+
+    // HUD: badge visual e status anunciado a partir de 2 vitorias seguidas
+    this.definirCombo(streak)
+  }
+
+  /** Mantem o badge visual e a regiao de status em sincronia com o streak. */
+  private definirCombo(streak: number): void {
+    const combo = document.getElementById('combo-badge') as HTMLElement | null
+    const status = document.getElementById('combo-status') as HTMLElement | null
+    const ativo = streak >= 2
+
+    if (status) status.textContent = ativo ? `Sequência de ${streak} vitórias seguidas` : ''
+    if (!combo) return
+
+    combo.hidden = !ativo
+    combo.textContent = ativo ? `🔥 ×${streak}` : ''
+    combo.classList.remove('pular')
+    if (ativo) {
+      void combo.offsetWidth
+      combo.classList.add('pular')
+    }
   }
 
   private atualizarContadorRodadas(rodada: number): void {
@@ -1187,6 +1230,11 @@ export class Menu {
 
       perguntaElem.appendChild(p)
       perguntaElem.style.display = 'flex'
+
+      // Re-dispara a "decodificacao" tambem no reroll.
+      perguntaElem.classList.remove('entrando')
+      void perguntaElem.offsetWidth
+      perguntaElem.classList.add('entrando')
     }
 
     if (areaJogo) {
@@ -1212,6 +1260,8 @@ export class Menu {
       resultadoElem.style.display = 'none'
       resultadoElem.textContent = ''
     }
+
+    this.definirCombo(0)
 
     // Garantir escolha pendente encerrada
     const escolha = document.getElementById('escolha-modo') as HTMLElement | null
@@ -1246,7 +1296,7 @@ export class Menu {
   private async handleReroll(): Promise<void> {
     if (this.rerollUsos >= this.maxReroll) return
 
-    // Gerar nova pergunta/desafio mantendo o mesmo participante e config
+    // Gerar nova pergunta/consequência mantendo o mesmo participante e config
     const config = this.obterConfig()
     if (!config || !this.wheelVencedor) return
 

@@ -4,19 +4,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DareWheel</title>
+  <title>Verdade ou Consequência</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles/main.css">
 </head>
 
 <body>
+  <!-- Ceu decorativo: estrelas e meteoros (nao interativo) -->
+  <div class="ceu" aria-hidden="true">
+    <span class="estrela estrela-1"></span>
+    <span class="estrela estrela-2"></span>
+    <span class="estrela estrela-3"></span>
+    <span class="estrela estrela-4"></span>
+    <span class="estrela estrela-5"></span>
+    <span class="estrela estrela-6"></span>
+    <span class="estrela estrela-7"></span>
+    <span class="estrela estrela-8"></span>
+    <span class="meteoro meteoro-1"></span>
+    <span class="meteoro meteoro-2"></span>
+    <span class="meteoro meteoro-3"></span>
+    <span class="meteoro-raro" id="meteoro-raro">
+      <span class="meteoro-raro-numero">67</span>
+    </span>
+  </div>
+
   <!-- Menu Principal -->
   <main id="menu-principal">
     <div class="container">
       <header>
-        <h1>DareWheel</h1>
+        <h1 id="titulo-jogo" tabindex="0">Verdade ou Consequência</h1>
         <p>Escolha as configurações da rodada</p>
       </header>
 
@@ -29,14 +47,14 @@
               <span>Só Verdade</span>
             </button>
             <button class="modo-toggle ativo" data-modo="completo" aria-pressed="true">
-              <span>Verdade ou Desafio</span>
+              <span>Verdade ou Consequência</span>
             </button>
             <button class="modo-toggle" data-modo="desafio" aria-pressed="false">
-              <span>Só Desafio</span>
+              <span>Só Consequência</span>
             </button>
           </div>
           <p class="aviso-completo">
-            No modo completo você escolherá Verdade ou Desafio após a roleta parar.
+            No modo completo você escolherá Verdade ou Consequência após a roleta parar.
           </p>
         </div>
 
@@ -88,7 +106,7 @@
         </p>
         <div class="custom-botoes">
           <button type="button" id="btn-add-verdade" class="btn-add-custom">+ Verdade</button>
-          <button type="button" id="btn-add-desafio" class="btn-add-custom">+ Desafio</button>
+          <button type="button" id="btn-add-desafio" class="btn-add-custom">+ Consequência</button>
         </div>
         <div id="custom-lista" class="custom-lista">
           <!-- Será populado pelo JavaScript -->
@@ -109,7 +127,11 @@
   <div id="area-jogo" style="display:none;">
     <div class="jogo-topo">
       <button id="btn-voltar" class="btn-voltar" aria-label="Voltar ao menu">←</button>
-      <p id="contador-rodadas" class="contador-rodadas" role="status">Rodada 1</p>
+      <div class="hud-status">
+        <p id="contador-rodadas" class="contador-rodadas" role="status">Rodada 1</p>
+        <span id="combo-badge" class="combo-badge" hidden>🔥 ×2</span>
+        <span id="combo-status" class="sr-only" role="status"></span>
+      </div>
       <button id="btn-som" class="btn-som" aria-label="Ativar som" aria-pressed="true">🔊</button>
     </div>
     <div class="roleta-container">
@@ -127,7 +149,7 @@
       <p id="escolha-pergunta" class="escolha-pergunta"></p>
       <div class="escolha-botoes">
         <button id="btn-escolha-verdade" class="btn-escolha btn-escolha-verdade">Verdade</button>
-        <button id="btn-escolha-desafio" class="btn-escolha btn-escolha-desafio">Desafio</button>
+        <button id="btn-escolha-desafio" class="btn-escolha btn-escolha-desafio">Consequência</button>
       </div>
     </div>
     <div id="pergunta" class="pergunta" role="status"></div>

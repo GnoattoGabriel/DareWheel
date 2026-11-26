@@ -6,15 +6,21 @@
 }
 
 :root {
-  --fonte-display: "Fredoka", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --fundo-1: #1a1033;
-  --fundo-2: #2b1b5e;
-  --superficie: rgba(255, 255, 255, 0.07);
-  --borda-suave: rgba(255, 255, 255, 0.22);
-  --texto: #f0eef8;      /* ~15:1 sobre o fundo */
-  --texto-suave: #cfcbe6; /* ~9:1 sobre o fundo */
-  --acento: #2c7a7b;
-  --acento-claro: #8ee0e2; /* foco visivel no tema escuro */
+  --fonte-display: "Orbitron", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fonte-corpo: "Rajdhani", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fundo-0: #05040f;
+  --fundo-1: #120a2a;
+  --fundo-2: #241252;
+  --superficie: rgba(14, 10, 38, 0.72);
+  --borda-suave: rgba(93, 242, 255, 0.35);
+  --texto: #f5f7ff;       /* alto contraste sobre o fundo escuro */
+  --texto-suave: #c7d2e8; /* ~9:1 sobre o fundo */
+  --acento: #5df2ff;
+  --acento-claro: #5df2ff; /* foco visivel no tema escuro */
+  --neon-ciano: #5df2ff;
+  --neon-magenta: #ff5fd2;
+  --neon-violeta: #a97bff;
+  --painel: rgba(14, 10, 38, 0.72);
 }
 
 html {
@@ -29,15 +35,168 @@ html {
 }
 
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--fonte-corpo);
   background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(255, 94, 158, 0.16), transparent 60%),
-    radial-gradient(900px 500px at -10% 30%, rgba(94, 129, 255, 0.18), transparent 55%),
-    linear-gradient(160deg, var(--fundo-1), var(--fundo-2));
+    radial-gradient(900px 620px at 85% -8%, rgba(169, 123, 255, 0.28), transparent 62%),
+    radial-gradient(760px 520px at -12% 24%, rgba(93, 242, 255, 0.16), transparent 58%),
+    radial-gradient(680px 520px at 50% 115%, rgba(255, 95, 210, 0.16), transparent 60%),
+    linear-gradient(160deg, var(--fundo-0), var(--fundo-1) 45%, var(--fundo-2));
   background-attachment: fixed;
   color: var(--texto);
   line-height: 1.5;
   min-height: 100vh;
+}
+
+/* Campo de estrelas: camada decorativa, sem clique e sem custo de JS. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 68% 12%, #b9f6ff 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 34% 62%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 86% 72%, #ffc8f1 50%, transparent 51%),
+    radial-gradient(1px 1px at 22% 88%, #fff 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 78% 42%, #d8ccff 50%, transparent 51%);
+  background-size: 320px 280px, 410px 360px, 480px 420px, 520px 460px, 560px 500px, 620px 540px;
+  animation:
+    twinkle 8s ease-in-out infinite alternate,
+    deriva 90s linear infinite;
+}
+
+/* Estrelas maiores com piscada independente e meteoros passageiros. */
+.ceu {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.estrela {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 1px rgba(185, 246, 255, 0.7);
+  opacity: 0.5;
+  animation: piscar var(--dur, 3s) ease-in-out var(--delay, 0s) infinite alternate;
+}
+
+.estrela-1 { top: 11%; left: 16%; --dur: 2.7s; --delay: 0s; }
+.estrela-2 { top: 18%; left: 74%; --dur: 3.9s; --delay: -1.2s; width: 3px; height: 3px; }
+.estrela-3 { top: 29%; left: 42%; --dur: 2.2s; --delay: -0.6s; }
+.estrela-4 { top: 37%; left: 88%; --dur: 4.4s; --delay: -2.8s; }
+.estrela-5 { top: 52%; left: 9%; --dur: 3.1s; --delay: -1.9s; width: 3px; height: 3px; }
+.estrela-6 { top: 63%; left: 61%; --dur: 2.5s; --delay: -0.3s; }
+.estrela-7 { top: 76%; left: 31%; --dur: 4.8s; --delay: -3.4s; }
+.estrela-8 { top: 86%; left: 82%; --dur: 3.6s; --delay: -1.5s; width: 3px; height: 3px; }
+
+.meteoro {
+  --cor-meteoro: var(--neon-ciano);
+  position: absolute;
+  top: var(--top, 10%);
+  left: var(--left, -5%);
+  width: 150px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--cor-meteoro), #fff);
+  filter: drop-shadow(0 0 6px var(--cor-meteoro));
+  opacity: 0;
+  animation: meteoro var(--dur, 10s) linear var(--delay, 0s) infinite;
+}
+
+.meteoro::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px 2px var(--cor-meteoro);
+}
+
+.meteoro-1 {
+  --top: 12%;
+  --left: 0%;
+  --dur: 9s;
+  --delay: -2s;
+  --cor-meteoro: var(--neon-ciano);
+}
+
+.meteoro-2 {
+  --top: 38%;
+  --left: 8%;
+  --dur: 13s;
+  --delay: -7s;
+  --cor-meteoro: var(--neon-magenta);
+}
+
+.meteoro-3 {
+  --top: 64%;
+  --left: -8%;
+  --dur: 17s;
+  --delay: -12s;
+  --cor-meteoro: var(--neon-violeta);
+}
+
+/* Meteoro raro (easter egg): so aparece apos 3 cliques no titulo. */
+.meteoro-raro {
+  position: absolute;
+  top: 24%;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.meteoro-raro::before {
+  content: "";
+  width: 170px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 95, 210, 0.65), #fff);
+  filter: drop-shadow(0 0 8px var(--neon-magenta));
+}
+
+.meteoro-raro-numero {
+  font-family: var(--fonte-display);
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  text-shadow:
+    0 0 8px var(--neon-magenta),
+    0 0 20px var(--neon-ciano),
+    0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.meteoro-raro.disparado {
+  animation: meteoro-raro 7s linear both;
+}
+
+#titulo-jogo {
+  cursor: pointer;
+}
+
+#titulo-jogo:focus-visible {
+  outline: 2px solid var(--acento-claro);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+#menu-principal,
+#area-jogo {
+  position: relative;
+  z-index: 1;
 }
 
 /* Container */
@@ -110,16 +269,19 @@ header p {
 }
 
 .toggles {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
-  flex-wrap: wrap;
-  justify-content: center;
 }
 
 .toggles .modo-toggle,
 .toggles .nivel-toggle {
-  padding: 0.6rem 1.1rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.6rem 0.5rem;
   font-size: 0.85rem;
+  text-wrap: balance;
+  overflow-wrap: break-word;
   border: 1px solid var(--borda-suave);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.06);
@@ -289,17 +451,20 @@ header p {
 }
 
 .custom-botoes {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin: 0.75rem 0;
+  width: min(100%, 20rem);
+  margin: 0.75rem auto;
 }
 
 .btn-add-custom {
-  padding: 0.55rem 1rem;
-  font-size: 0.85rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  font-size: max(12px, 0.85rem);
   font-family: var(--fonte-display);
+  overflow-wrap: break-word;
   font-weight: 600;
   color: var(--texto);
   background: rgba(44, 122, 123, 0.28);
@@ -602,27 +767,47 @@ header p {
   gap: 0.75rem;
 }
 
-/* Legenda dos participantes ao lado da roleta */
+/* Legenda dos participantes: faixa visivel abaixo da roleta */
 .legenda-participantes {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.5rem;
-  font-size: max(12px, 0.8rem);
-  font-weight: 500;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  padding: 0.4rem 0.75rem;
+  font-size: max(13px, 0.95rem);
+  font-weight: 600;
   color: var(--texto);
-  min-height: 1.5em;
+  background: rgba(5, 4, 15, 0.62);
+  border: 1px solid rgba(93, 242, 255, 0.22);
+  border-radius: 999px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45), inset 0 0 12px rgba(93, 242, 255, 0.08);
+  min-height: 1.8em;
 }
 
 .legenda-item {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.4rem;
   white-space: nowrap;
-  padding: 0.15rem 0.4rem;
+  padding: 0.25rem 0.65rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--borda-suave);
+  color: #fff;
+  background: rgba(14, 10, 38, 0.92);
+  border: 1px solid var(--cor-jogador, var(--neon-ciano));
+  box-shadow: 0 0 12px rgba(93, 242, 255, 0.2), inset 0 0 8px rgba(255, 255, 255, 0.06);
+}
+
+.legenda-item::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--cor-jogador, var(--neon-ciano));
+  box-shadow: 0 0 8px var(--cor-jogador, var(--neon-ciano));
 }
 
 /* Aro de carnaval: lâmpadas que piscam durante o giro */
@@ -680,7 +865,9 @@ header p {
   position: absolute;
   transform: translate(-50%, -50%);
   line-height: 1;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+  filter:
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9))
+    drop-shadow(0 0 4px rgba(93, 242, 255, 0.6));
 }
 
 /* Pulso de embaralhamento: mascara a troca de assentos no inicio do giro */
@@ -954,15 +1141,13 @@ header p {
 /* Mobile menu improvements */
 @media (max-width: 640px) {
   .toggle-group .toggles {
-    justify-content: center;
-    flex-wrap: wrap;
     padding-bottom: 0;
   }
 
   .toggles .modo-toggle,
   .toggles .nivel-toggle {
-    flex: 0 1 auto;
-    white-space: nowrap;
+    font-size: max(12px, 0.85rem);
+    padding-inline: 0.25rem;
   }
 }
 
@@ -1090,7 +1275,7 @@ input:focus-visible {
 .modal-input-wrapper input {
   width: 100%;
   padding: 0.75rem 1rem;
-  font-size: 1rem;
+  font-size: max(16px, 1rem);
   font-family: inherit;
   color: var(--texto);
   background: rgba(255, 255, 255, 0.08);
@@ -1178,5 +1363,620 @@ input:focus-visible {
     flex: 1;
     min-width: 0;
     padding: 0.5rem 1rem;
+  }
+}
+
+/* ============================================================
+   TEMA ESPACIAL / CONSOLE DE NAVEGAÇÃO
+   Sobrescreve a base mantendo os IDs e o layout existentes.
+   ============================================================ */
+
+@keyframes twinkle {
+  from { opacity: 0.28; }
+  to { opacity: 0.6; }
+}
+
+@keyframes deriva {
+  to {
+    background-position:
+      320px 280px, -410px 360px, 480px -420px,
+      -520px 460px, 560px -500px, -620px 540px;
+  }
+}
+
+@keyframes piscar {
+  from { opacity: 0.15; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1.3); }
+}
+
+@keyframes meteoro {
+  0% {
+    transform: rotate(28deg) translateX(-15vw);
+    opacity: 0;
+  }
+  8% { opacity: 1; }
+  55% { opacity: 1; }
+  72%, 100% {
+    transform: rotate(28deg) translateX(115vw);
+    opacity: 0;
+  }
+}
+
+@keyframes meteoro-raro {
+  0% {
+    transform: rotate(28deg) translateX(-25vw);
+    opacity: 0;
+  }
+  8% { opacity: 1; }
+  88% { opacity: 1; }
+  100% {
+    transform: rotate(28deg) translateX(120vw);
+    opacity: 0;
+  }
+}
+
+@keyframes boot-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes scan-sweep {
+  from { transform: translateY(-140%); opacity: 0; }
+  25% { opacity: 1; }
+  to { transform: translateY(360%); opacity: 0; }
+}
+
+@keyframes sweep {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(120%); }
+}
+
+@keyframes aro-correndo {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes lock-on {
+  0% { transform: scale(0.72); opacity: 0; filter: brightness(2); }
+  55% { transform: scale(1.06); opacity: 1; filter: brightness(1.35); }
+  100% { transform: scale(1); opacity: 1; filter: brightness(1); }
+}
+
+@keyframes combo-burst {
+  0% { transform: scale(0.5) rotate(-8deg); opacity: 0; }
+  55% { transform: scale(1.18) rotate(3deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+@keyframes combo-ring {
+  from { transform: scale(0.7); opacity: 1; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+
+@keyframes decodificar {
+  0% {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0.45;
+    text-shadow: -2px 0 var(--neon-magenta), 2px 0 var(--neon-ciano);
+  }
+  60% {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+    text-shadow: 1px 0 var(--neon-ciano);
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    text-shadow: none;
+  }
+}
+
+@keyframes portal {
+  0% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+  45% { opacity: 1; transform: scale(1.05) rotate(8deg); }
+  100% { opacity: 0; transform: scale(1.6) rotate(16deg); }
+}
+
+/* Painéis liquid glass: opacos o suficiente para legibilidade */
+.configuracoes .toggle-group,
+.participantes,
+.acao {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 22%, transparent 44%),
+    radial-gradient(120% 90% at 0% 0%, rgba(93, 242, 255, 0.14), transparent 58%),
+    linear-gradient(160deg, rgba(30, 21, 72, 0.68), rgba(10, 7, 28, 0.75));
+  border: 1px solid rgba(198, 236, 255, 0.45);
+  box-shadow:
+    0 14px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(93, 242, 255, 0.2),
+    inset 0 0 30px rgba(93, 242, 255, 0.08);
+  backdrop-filter: blur(16px) saturate(180%);
+  animation: boot-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+#area-jogo {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 26%, transparent 48%),
+    linear-gradient(160deg, rgba(28, 19, 66, 0.9), rgba(9, 6, 26, 0.94));
+  border-color: rgba(183, 225, 255, 0.34);
+  box-shadow:
+    0 14px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 24px rgba(93, 242, 255, 0.06);
+  backdrop-filter: blur(12px) saturate(140%);
+}
+
+.configuracoes .toggle-group:nth-child(1) { animation-delay: 60ms; }
+.configuracoes .toggle-group:nth-child(2) { animation-delay: 120ms; }
+.participantes { animation-delay: 180ms; }
+.acao-iniciar { animation-delay: 240ms; }
+.acao-offline { animation-delay: 300ms; }
+
+.configuracoes .toggle-group::before,
+.participantes::before,
+.acao::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: -40%;
+  height: 40%;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(93, 242, 255, 0.14), transparent);
+  animation: scan-sweep 2.6s ease-out 1 both;
+}
+
+/* Reflexo de vidro: deixa o card com aspecto liquido, nao transparente. */
+.configuracoes .toggle-group::after,
+.participantes::after,
+.acao::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(118deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.05) 16%, transparent 38%),
+    radial-gradient(90% 70% at 100% 100%, rgba(169, 123, 255, 0.14), transparent 60%);
+  mix-blend-mode: screen;
+}
+
+header h1 {
+  font-family: var(--fonte-display);
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 18px rgba(93, 242, 255, 0.55), 0 0 36px rgba(255, 95, 210, 0.3);
+}
+
+/* Toggles iluminados */
+.toggles .modo-toggle,
+.toggles .nivel-toggle {
+  position: relative;
+  overflow: hidden;
+  font-family: var(--fonte-display);
+  letter-spacing: 0.03em;
+  background: rgba(93, 242, 255, 0.06);
+  border-color: rgba(93, 242, 255, 0.3);
+}
+
+.toggles .modo-toggle.ativo,
+.toggles .nivel-toggle.ativo {
+  background: linear-gradient(180deg, rgba(93, 242, 255, 0.34), rgba(93, 242, 255, 0.14));
+  border-color: var(--neon-ciano);
+  box-shadow: 0 0 18px rgba(93, 242, 255, 0.35), inset 0 0 12px rgba(93, 242, 255, 0.2);
+}
+
+.toggles .modo-toggle.ativo::after,
+.toggles .nivel-toggle.ativo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.45) 50%, transparent 80%);
+  animation: sweep 900ms ease-out both;
+}
+
+.toggles .modo-toggle:hover:not(.ativo),
+.toggles .nivel-toggle:hover:not(.ativo) {
+  background: rgba(93, 242, 255, 0.16);
+}
+
+/* Botões neon */
+.btn-iniciar,
+.btn-offline,
+.btn-reroll,
+.btn-escolha,
+.btn-add-custom,
+.modal-btn,
+.btn-voltar,
+.btn-som {
+  font-family: var(--fonte-display);
+  letter-spacing: 0.04em;
+}
+
+.btn-iniciar {
+  display: block;
+  background: linear-gradient(180deg, #0f6c79, #0a4c57);
+  border: 1px solid #8ff6ff;
+  box-shadow: 0 0 22px rgba(93, 242, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.btn-iniciar:not(:disabled):hover {
+  background: linear-gradient(180deg, #11707e, #0f6c79);
+}
+
+.btn-offline {
+  display: block;
+  background: linear-gradient(180deg, #7a3fce, #5b22a8);
+  border: 1px solid #d9b6ff;
+  box-shadow: 0 0 24px rgba(169, 123, 255, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.btn-offline:not(:disabled):hover {
+  background: linear-gradient(180deg, #813fcf, #7a3fce);
+}
+
+.btn-reroll {
+  background: linear-gradient(180deg, #a11f8a, #7d176b);
+  border: 1px solid #ffc0ee;
+  box-shadow: 0 0 22px rgba(255, 95, 210, 0.4);
+}
+
+.btn-reroll:not(:disabled):hover {
+  background: linear-gradient(180deg, #a92a93, #a11f8a);
+}
+
+.btn-escolha-verdade {
+  background: linear-gradient(180deg, #0f6c79, #0a4c57);
+  border: 1px solid #8ff6ff;
+  box-shadow: 0 0 20px rgba(93, 242, 255, 0.35);
+}
+
+.btn-escolha-desafio {
+  background: linear-gradient(180deg, #7a3fce, #5b22a8);
+  border: 1px solid #d9b6ff;
+  box-shadow: 0 0 20px rgba(169, 123, 255, 0.35);
+}
+
+.btn-add-custom {
+  background: rgba(93, 242, 255, 0.12);
+  border-color: rgba(93, 242, 255, 0.45);
+  box-shadow: inset 0 0 12px rgba(93, 242, 255, 0.08);
+}
+
+.btn-iniciar:disabled,
+.btn-offline:disabled,
+.btn-reroll:disabled {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.5);
+  box-shadow: none;
+}
+
+/* HUD do topo */
+.jogo-topo {
+  gap: 0.5rem;
+}
+
+.hud-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-inline: auto;
+}
+
+.contador-rodadas {
+  font-family: var(--fonte-display);
+  letter-spacing: 0.06em;
+  background: rgba(93, 242, 255, 0.12);
+  border: 1px solid rgba(93, 242, 255, 0.4);
+  box-shadow: 0 0 14px rgba(93, 242, 255, 0.18);
+}
+
+.combo-badge[hidden] {
+  display: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.combo-badge {
+  position: relative;
+  padding: 0.35rem 0.8rem;
+  font-family: var(--fonte-display);
+  font-size: max(12px, 0.85rem);
+  color: #fff;
+  background: linear-gradient(180deg, rgba(255, 95, 210, 0.55), rgba(169, 42, 150, 0.9));
+  border: 1px solid #ffc0ee;
+  border-radius: 999px;
+  box-shadow: 0 0 18px rgba(255, 95, 210, 0.5);
+}
+
+.combo-badge::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border: 1px solid rgba(255, 95, 210, 0.7);
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.combo-badge.pular {
+  animation: combo-burst 480ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.combo-badge.pular::after {
+  animation: combo-ring 480ms ease-out both;
+}
+
+/* Roleta como painel de navegação */
+#roda {
+  position: relative;
+  overflow: hidden;
+  border-color: #07040f;
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.7),
+    0 0 0 2px rgba(93, 242, 255, 0.22),
+    inset 0 0 26px rgba(93, 242, 255, 0.18);
+}
+
+#roda::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.26), transparent 38%),
+    radial-gradient(circle at 70% 76%, rgba(93, 242, 255, 0.12), transparent 46%);
+  box-shadow: inset 0 0 34px rgba(0, 0, 0, 0.55);
+}
+
+.roleta-wrapper:hover #roda {
+  box-shadow:
+    0 14px 42px rgba(0, 0, 0, 0.75),
+    0 0 30px rgba(93, 242, 255, 0.32),
+    inset 0 0 26px rgba(93, 242, 255, 0.2);
+}
+
+.aro-luzes {
+  background: repeating-conic-gradient(
+    from 0deg,
+    var(--neon-ciano) 0deg 4deg,
+    var(--neon-magenta) 4deg 8deg,
+    transparent 8deg 22.5deg
+  );
+  opacity: 0.35;
+}
+
+.roleta-wrapper.girando .aro-luzes {
+  opacity: 1;
+  animation: aro-correndo 900ms linear infinite;
+}
+
+.agulha-corpo::before {
+  background: linear-gradient(to right, #232a35 0%, #232a35 49%, #ff3d7f 51%, #ff3d7f 100%);
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.45),
+    0 0 0 1.5px var(--neon-ciano),
+    0 0 14px rgba(93, 242, 255, 0.5);
+}
+
+.agulha-corpo::after {
+  border-left-color: #ff3d7f;
+  filter: drop-shadow(0 0 2px var(--neon-ciano));
+}
+
+.pino-central {
+  border-color: #07040f;
+  box-shadow:
+    0 0 14px rgba(93, 242, 255, 0.55),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Resultado com lock-on */
+.resultado {
+  position: relative;
+  overflow: hidden;
+  font-family: var(--fonte-display);
+  letter-spacing: 0.03em;
+  background: linear-gradient(180deg, rgba(255, 95, 210, 0.24), rgba(14, 10, 38, 0.94));
+  border: 1px solid rgba(255, 95, 210, 0.55);
+  box-shadow: 0 0 26px rgba(255, 95, 210, 0.35), inset 0 0 18px rgba(255, 95, 210, 0.12);
+}
+
+.resultado::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px dashed rgba(93, 242, 255, 0.35);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.resultado.pop-in {
+  animation: lock-on 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Pergunta decodificada */
+.pergunta {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 26%, transparent 48%),
+    linear-gradient(160deg, rgba(28, 19, 66, 0.9), rgba(9, 6, 26, 0.94));
+  border: 1px solid rgba(183, 225, 255, 0.34);
+  border-radius: 14px;
+  box-shadow:
+    0 14px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 24px rgba(93, 242, 255, 0.06);
+  backdrop-filter: blur(12px) saturate(140%);
+}
+
+.pergunta:empty {
+  padding: 0;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.pergunta p {
+  font-family: var(--fonte-corpo);
+}
+
+.pergunta.entrando p {
+  animation: decodificar 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.origem-banco,
+.origem-custom {
+  font-family: var(--fonte-display);
+  letter-spacing: 0.04em;
+  color: #d8fbff;
+  background: rgba(93, 242, 255, 0.12);
+  border-color: rgba(93, 242, 255, 0.5);
+  box-shadow: 0 0 12px rgba(93, 242, 255, 0.2);
+}
+
+.origem-custom {
+  color: #f0d9ff;
+  background: rgba(169, 123, 255, 0.2);
+  border-color: rgba(217, 182, 255, 0.55);
+  box-shadow: 0 0 12px rgba(169, 123, 255, 0.3);
+}
+
+/* Escolha Verdade/Desafio */
+.escolha-pergunta {
+  font-family: var(--fonte-display);
+  letter-spacing: 0.03em;
+}
+
+/* Modal */
+.modal-overlay {
+  background: rgba(3, 2, 10, 0.82);
+}
+
+.modal-content {
+  background: linear-gradient(180deg, rgba(24, 12, 58, 0.98), rgba(10, 6, 28, 0.98));
+  border-color: rgba(93, 242, 255, 0.45);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 36px rgba(93, 242, 255, 0.18);
+}
+
+.modal-content h3 {
+  font-family: var(--fonte-display);
+  letter-spacing: 0.05em;
+}
+
+.modal-input-wrapper input {
+  font-family: var(--fonte-corpo);
+  background: rgba(93, 242, 255, 0.07);
+}
+
+.modal-confirm {
+  background: linear-gradient(180deg, #0f6c79, #0a4c57);
+  border: 1px solid #8ff6ff;
+  box-shadow: 0 3px 14px rgba(93, 242, 255, 0.3);
+}
+
+/* Portal ao iniciar offline */
+.acao-offline.ativando::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 60%,
+    rgba(169, 123, 255, 0.55),
+    rgba(255, 95, 210, 0.18) 40%,
+    transparent 70%
+  );
+  animation: portal 620ms ease-out forwards;
+  mix-blend-mode: normal;
+}
+
+/* Ajustes mobile */
+@media (max-width: 640px) {
+  body::before {
+    opacity: 0.32;
+    animation: twinkle 10s ease-in-out infinite alternate;
+  }
+
+  .meteoro-3 {
+    display: none;
+  }
+
+  .configuracoes .toggle-group,
+  .participantes,
+  .acao {
+    backdrop-filter: blur(10px) saturate(150%);
+    box-shadow:
+      0 6px 18px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28),
+      inset 0 -1px 0 rgba(93, 242, 255, 0.16);
+  }
+
+  .configuracoes .toggle-group::before,
+  .participantes::before,
+  .acao::before {
+    opacity: 0.35;
+    animation: none;
+  }
+
+  .jogo-topo {
+    flex-wrap: wrap;
+  }
+
+  .hud-status {
+    order: 3;
+    width: 100%;
+  }
+
+  .contador-rodadas {
+    font-size: 0.9rem;
+  }
+
+  .pergunta {
+    padding: 0.75rem;
+  }
+
+  .aro-luzes {
+    animation-duration: 1.4s;
+  }
+}
+
+/* Respeito a quem prefere menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  body::before {
+    animation: none !important;
+  }
+
+  .meteoro,
+  .meteoro-raro {
+    display: none !important;
+  }
+
+  .estrela {
+    animation: none !important;
+    opacity: 0.65;
+    transform: none;
   }
 }
