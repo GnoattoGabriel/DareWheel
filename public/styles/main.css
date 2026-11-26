@@ -180,7 +180,7 @@ body::before {
 }
 
 .meteoro-raro.disparado {
-  animation: meteoro-raro 3.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation: meteoro-raro 7s linear both;
 }
 
 #titulo-jogo {
@@ -1405,8 +1405,8 @@ input:focus-visible {
     transform: rotate(28deg) translateX(-25vw);
     opacity: 0;
   }
-  12% { opacity: 1; }
-  78% { opacity: 1; }
+  8% { opacity: 1; }
+  88% { opacity: 1; }
   100% {
     transform: rotate(28deg) translateX(120vw);
     opacity: 0;
