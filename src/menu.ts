@@ -486,7 +486,22 @@ export class Menu {
     // Botão offline (somente banco + perguntas do jogador)
     const btnOffline = document.getElementById('btn-offline') as HTMLButtonElement | null
     if (btnOffline) {
-      btnOffline.addEventListener('click', () => void this.iniciarJogo(true))
+      btnOffline.addEventListener('click', () => {
+        const bloco = document.querySelector('.acao-offline') as HTMLElement | null
+        if (bloco) {
+          bloco.classList.remove('ativando')
+          void bloco.offsetWidth
+          bloco.classList.add('ativando')
+          bloco.addEventListener(
+            'animationend',
+            (evento) => {
+              if (evento.target === bloco) bloco.classList.remove('ativando')
+            },
+            { once: true }
+          )
+        }
+        void this.iniciarJogo(true)
+      })
     }
 
     // Perguntas do jogador
@@ -702,6 +717,13 @@ export class Menu {
     if (resultadoElem) {
       resultadoElem.style.display = 'none'
       resultadoElem.textContent = ''
+    }
+
+    const combo = document.getElementById('combo-badge') as HTMLElement | null
+    if (combo) {
+      combo.hidden = true
+      combo.textContent = ''
+      combo.classList.remove('pular')
     }
 
     // Esconder escolha de modo pendente
@@ -937,6 +959,7 @@ export class Menu {
     const perguntaElem = document.getElementById('pergunta') as HTMLElement | null
     if (!perguntaElem) return
 
+    perguntaElem.classList.remove('entrando')
     perguntaElem.replaceChildren()
     const p = document.createElement('p')
     p.className = 'pergunta-carregando'
@@ -1076,10 +1099,23 @@ export class Menu {
     resultadoElem.replaceChildren(linha1, document.createElement('br'), linha2)
     resultadoElem.style.display = 'block'
 
-    // Pop-in do card
+    // Pop-in do card (lock-on)
     resultadoElem.classList.remove('pop-in')
     void resultadoElem.offsetWidth
     resultadoElem.classList.add('pop-in')
+
+    // HUD: badge de combo so aparece a partir de 2 vitorias seguidas
+    const combo = document.getElementById('combo-badge') as HTMLElement | null
+    if (combo) {
+      const ativo = streak >= 2
+      combo.hidden = !ativo
+      combo.textContent = ativo ? `🔥 ×${streak}` : ''
+      if (ativo) {
+        combo.classList.remove('pular')
+        void combo.offsetWidth
+        combo.classList.add('pular')
+      }
+    }
   }
 
   private atualizarContadorRodadas(rodada: number): void {
@@ -1187,6 +1223,11 @@ export class Menu {
 
       perguntaElem.appendChild(p)
       perguntaElem.style.display = 'flex'
+
+      // Re-dispara a "decodificacao" tambem no reroll.
+      perguntaElem.classList.remove('entrando')
+      void perguntaElem.offsetWidth
+      perguntaElem.classList.add('entrando')
     }
 
     if (areaJogo) {
@@ -1211,6 +1252,13 @@ export class Menu {
     if (resultadoElem) {
       resultadoElem.style.display = 'none'
       resultadoElem.textContent = ''
+    }
+
+    const combo = document.getElementById('combo-badge') as HTMLElement | null
+    if (combo) {
+      combo.hidden = true
+      combo.textContent = ''
+      combo.classList.remove('pular')
     }
 
     // Garantir escolha pendente encerrada

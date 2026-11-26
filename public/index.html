@@ -7,7 +7,7 @@
   <title>DareWheel</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles/main.css">
 </head>
 
@@ -109,7 +109,10 @@
   <div id="area-jogo" style="display:none;">
     <div class="jogo-topo">
       <button id="btn-voltar" class="btn-voltar" aria-label="Voltar ao menu">←</button>
-      <p id="contador-rodadas" class="contador-rodadas" role="status">Rodada 1</p>
+      <div class="hud-status">
+        <p id="contador-rodadas" class="contador-rodadas" role="status">Rodada 1</p>
+        <span id="combo-badge" class="combo-badge" hidden>🔥 ×2</span>
+      </div>
       <button id="btn-som" class="btn-som" aria-label="Ativar som" aria-pressed="true">🔊</button>
     </div>
     <div class="roleta-container">
