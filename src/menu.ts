@@ -723,12 +723,7 @@ export class Menu {
       resultadoElem.textContent = ''
     }
 
-    const combo = document.getElementById('combo-badge') as HTMLElement | null
-    if (combo) {
-      combo.hidden = true
-      combo.textContent = ''
-      combo.classList.remove('pular')
-    }
+    this.definirCombo(0)
 
     // Esconder escolha de modo pendente
     const escolha = document.getElementById('escolha-modo') as HTMLElement | null
@@ -1108,17 +1103,25 @@ export class Menu {
     void resultadoElem.offsetWidth
     resultadoElem.classList.add('pop-in')
 
-    // HUD: badge de combo so aparece a partir de 2 vitorias seguidas
+    // HUD: badge visual e status anunciado a partir de 2 vitorias seguidas
+    this.definirCombo(streak)
+  }
+
+  /** Mantem o badge visual e a regiao de status em sincronia com o streak. */
+  private definirCombo(streak: number): void {
     const combo = document.getElementById('combo-badge') as HTMLElement | null
-    if (combo) {
-      const ativo = streak >= 2
-      combo.hidden = !ativo
-      combo.textContent = ativo ? `🔥 ×${streak}` : ''
-      if (ativo) {
-        combo.classList.remove('pular')
-        void combo.offsetWidth
-        combo.classList.add('pular')
-      }
+    const status = document.getElementById('combo-status') as HTMLElement | null
+    const ativo = streak >= 2
+
+    if (status) status.textContent = ativo ? `Sequência de ${streak} vitórias seguidas` : ''
+    if (!combo) return
+
+    combo.hidden = !ativo
+    combo.textContent = ativo ? `🔥 ×${streak}` : ''
+    combo.classList.remove('pular')
+    if (ativo) {
+      void combo.offsetWidth
+      combo.classList.add('pular')
     }
   }
 
@@ -1258,12 +1261,7 @@ export class Menu {
       resultadoElem.textContent = ''
     }
 
-    const combo = document.getElementById('combo-badge') as HTMLElement | null
-    if (combo) {
-      combo.hidden = true
-      combo.textContent = ''
-      combo.classList.remove('pular')
-    }
+    this.definirCombo(0)
 
     // Garantir escolha pendente encerrada
     const escolha = document.getElementById('escolha-modo') as HTMLElement | null

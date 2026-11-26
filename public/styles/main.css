@@ -281,6 +281,7 @@ header p {
   padding: 0.6rem 0.5rem;
   font-size: 0.85rem;
   text-wrap: balance;
+  overflow-wrap: break-word;
   border: 1px solid var(--borda-suave);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.06);
@@ -461,8 +462,9 @@ header p {
   width: 100%;
   min-width: 0;
   padding: 0.4rem 0.5rem;
-  font-size: 0.78rem;
+  font-size: max(12px, 0.85rem);
   font-family: var(--fonte-display);
+  overflow-wrap: break-word;
   font-weight: 600;
   color: var(--texto);
   background: rgba(44, 122, 123, 0.28);
@@ -1144,7 +1146,7 @@ header p {
 
   .toggles .modo-toggle,
   .toggles .nivel-toggle {
-    font-size: 0.76rem;
+    font-size: max(12px, 0.85rem);
     padding-inline: 0.25rem;
   }
 }
@@ -1273,7 +1275,7 @@ input:focus-visible {
 .modal-input-wrapper input {
   width: 100%;
   padding: 0.75rem 1rem;
-  font-size: 1rem;
+  font-size: max(16px, 1rem);
   font-family: inherit;
   color: var(--texto);
   background: rgba(255, 255, 255, 0.08);
@@ -1593,44 +1595,44 @@ header h1 {
 
 .btn-iniciar {
   display: block;
-  background: linear-gradient(180deg, #2bd7e8, #148a9c);
+  background: linear-gradient(180deg, #0f6c79, #0a4c57);
   border: 1px solid #8ff6ff;
   box-shadow: 0 0 22px rgba(93, 242, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .btn-iniciar:not(:disabled):hover {
-  background: linear-gradient(180deg, #48e6f5, #1aa2b5);
+  background: linear-gradient(180deg, #11707e, #0f6c79);
 }
 
 .btn-offline {
   display: block;
-  background: linear-gradient(180deg, #b06cff, #6c2bd9);
+  background: linear-gradient(180deg, #7a3fce, #5b22a8);
   border: 1px solid #d9b6ff;
   box-shadow: 0 0 24px rgba(169, 123, 255, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .btn-offline:not(:disabled):hover {
-  background: linear-gradient(180deg, #c487ff, #7d3ceb);
+  background: linear-gradient(180deg, #813fcf, #7a3fce);
 }
 
 .btn-reroll {
-  background: linear-gradient(180deg, #ff77df, #b729a2);
+  background: linear-gradient(180deg, #a11f8a, #7d176b);
   border: 1px solid #ffc0ee;
   box-shadow: 0 0 22px rgba(255, 95, 210, 0.4);
 }
 
 .btn-reroll:not(:disabled):hover {
-  background: linear-gradient(180deg, #ff92e8, #c435ae);
+  background: linear-gradient(180deg, #a92a93, #a11f8a);
 }
 
 .btn-escolha-verdade {
-  background: linear-gradient(180deg, #2bd7e8, #148a9c);
+  background: linear-gradient(180deg, #0f6c79, #0a4c57);
   border: 1px solid #8ff6ff;
   box-shadow: 0 0 20px rgba(93, 242, 255, 0.35);
 }
 
 .btn-escolha-desafio {
-  background: linear-gradient(180deg, #b06cff, #6c2bd9);
+  background: linear-gradient(180deg, #7a3fce, #5b22a8);
   border: 1px solid #d9b6ff;
   box-shadow: 0 0 20px rgba(169, 123, 255, 0.35);
 }
@@ -1675,13 +1677,25 @@ header h1 {
   display: none;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .combo-badge {
   position: relative;
   padding: 0.35rem 0.8rem;
   font-family: var(--fonte-display);
-  font-size: 0.85rem;
+  font-size: max(12px, 0.85rem);
   color: #fff;
-  background: linear-gradient(180deg, rgba(255, 95, 210, 0.85), rgba(169, 42, 150, 0.9));
+  background: linear-gradient(180deg, rgba(255, 95, 210, 0.55), rgba(169, 42, 150, 0.9));
   border: 1px solid #ffc0ee;
   border-radius: 999px;
   box-shadow: 0 0 18px rgba(255, 95, 210, 0.5);
@@ -1869,7 +1883,7 @@ header h1 {
 }
 
 .modal-confirm {
-  background: linear-gradient(180deg, #2bd7e8, #148a9c);
+  background: linear-gradient(180deg, #0f6c79, #0a4c57);
   border: 1px solid #8ff6ff;
   box-shadow: 0 3px 14px rgba(93, 242, 255, 0.3);
 }
