@@ -126,7 +126,9 @@ export class Menu {
       const parsed = JSON.parse(salvo) as Partial<EstadoJogo>
       if (Array.isArray(parsed.perguntasUsadas)) {
         this.perguntasUsadas = new Set(
-          parsed.perguntasUsadas.filter((q): q is string => typeof q === 'string')
+          parsed.perguntasUsadas.filter(
+            (q): q is string => typeof q === 'string' && !q.endsWith(SUFIXO_CUSTOM)
+          )
         )
       }
     } catch (erro) {
@@ -810,7 +812,9 @@ export class Menu {
             rodadaAtual: Math.max(1, salvo.rodadaAtual),
             vencedorAtual: salvo.vencedorAtual ?? null,
             perguntasUsadas: Array.isArray(salvo.perguntasUsadas)
-              ? salvo.perguntasUsadas.filter((q): q is string => typeof q === 'string')
+              ? salvo.perguntasUsadas.filter(
+                  (q): q is string => typeof q === 'string' && !q.endsWith(SUFIXO_CUSTOM)
+                )
               : [],
           }
         }
@@ -999,23 +1003,29 @@ export class Menu {
   /**
    * Modo offline: banco fixo + perguntas do jogador. Nunca chama a API.
    * As perguntas customizadas recebem um sufixo apenas em memoria, para
-   * exibir a origem sem poluir o texto salvo no localStorage.
+   * exibir a origem sem poluir o texto salvo no localStorage, e podem
+   * ser sorteadas quantas vezes quiser.
    */
   private selecionarPerguntaOffline(tipo: TipoPergunta, nivel: NivelPicancia): string | null {
     const fixas = BANCOS_PERGUNTAS[nivel]?.[tipo] ?? []
     const customizadas = (this.perguntasCustom[nivel]?.[tipo] ?? []).map((q) => `${q}${SUFIXO_CUSTOM}`)
-    const candidatos = [...fixas, ...customizadas]
-    if (candidatos.length === 0) return null
 
-    let disponiveis = candidatos.filter((q) => !this.perguntasUsadas.has(q))
-    if (disponiveis.length === 0) {
-      // Esgotou: libera apenas esta categoria e receca.
-      for (const q of candidatos) this.perguntasUsadas.delete(q)
-      disponiveis = [...candidatos]
+    // As perguntas do jogador podem se repetir a vontade: nunca entram no
+    // historico anti-repeticao. Apenas o banco fixo evita repeticoes.
+    let fixasDisponiveis = fixas.filter((q) => !this.perguntasUsadas.has(q))
+    if (fixas.length > 0 && fixasDisponiveis.length === 0) {
+      // Banco fixo esgotado: libera esta categoria e receca.
+      for (const q of fixas) this.perguntasUsadas.delete(q)
+      fixasDisponiveis = [...fixas]
     }
 
-    const escolhida = disponiveis[Math.floor(Math.random() * disponiveis.length)]
-    this.perguntasUsadas.add(escolhida)
+    const candidatos = [...fixasDisponiveis, ...customizadas]
+    if (candidatos.length === 0) return null
+
+    const escolhida = candidatos[Math.floor(Math.random() * candidatos.length)]
+    if (!escolhida.endsWith(SUFIXO_CUSTOM)) {
+      this.perguntasUsadas.add(escolhida)
+    }
     return escolhida
   }
 
