@@ -205,7 +205,7 @@ export class Menu {
 
   private async adicionarPerguntaCustom(tipo: TipoPergunta): Promise<void> {
     const nivel = this.obterConfig()?.nivel ?? NivelPicancia.SFW
-    const rotulo = tipo === 'verdade' ? 'verdade' : 'desafio'
+    const rotulo = tipo === 'verdade' ? 'verdade' : 'consequência'
     const texto = await modal.open(
       `Nova ${rotulo}`,
       `Digite uma ${rotulo} para o nível ${ROTULO_NIVEL[nivel]}. Máximo de ${MAX_PERGUNTA_CUSTOM} caracteres.`,
@@ -264,7 +264,7 @@ export class Menu {
 
       const tag = document.createElement('span')
       tag.className = 'custom-tipo'
-      tag.textContent = item.tipo === 'verdade' ? 'Verdade' : 'Desafio'
+      tag.textContent = item.tipo === 'verdade' ? 'Verdade' : 'Consequência'
 
       const texto = document.createElement('span')
       texto.className = 'custom-texto'
@@ -276,7 +276,7 @@ export class Menu {
       remover.textContent = '×'
       remover.setAttribute(
         'aria-label',
-        `Remover ${item.tipo === 'verdade' ? 'verdade' : 'desafio'}: ${item.texto}`
+        `Remover ${item.tipo === 'verdade' ? 'verdade' : 'consequência'}: ${item.texto}`
       )
       remover.addEventListener('click', () => {
         this.removerPerguntaCustom(nivel, item.tipo, item.texto)
@@ -546,7 +546,7 @@ export class Menu {
       })
     }
 
-    // Escolha Verdade/Desafio (modo completo)
+    // Escolha Verdade/Consequência (modo completo)
     const btnEscolhaVerdade = document.getElementById('btn-escolha-verdade') as HTMLButtonElement | null
     const btnEscolhaDesafio = document.getElementById('btn-escolha-desafio') as HTMLButtonElement | null
     if (btnEscolhaVerdade) {
@@ -879,7 +879,7 @@ export class Menu {
         perguntaAnterior.style.display = 'none'
         perguntaAnterior.replaceChildren()
       }
-      // Modo completo: usuario escolhe Verdade ou Desafio na tela
+      // Modo completo: usuario escolhe Verdade ou Consequência na tela
       this.perguntarVerdadeOuDesafio(boca)
     } else {
       const tipo: "verdade" | "consequencia" =
@@ -907,7 +907,7 @@ export class Menu {
       return
     }
 
-    texto.textContent = `Para ${vencedor.displayName ? `${vencedor.displayName} ${vencedor.nome}` : vencedor.nome}: verdade ou desafio?`
+    texto.textContent = `Para ${vencedor.displayName ? `${vencedor.displayName} ${vencedor.nome}` : vencedor.nome}: verdade ou consequência?`
     this.definirBotoesEscolha(true)
     container.style.display = 'block'
   }
@@ -1298,7 +1298,7 @@ export class Menu {
   private async handleReroll(): Promise<void> {
     if (this.rerollUsos >= this.maxReroll) return
 
-    // Gerar nova pergunta/desafio mantendo o mesmo participante e config
+    // Gerar nova pergunta/consequência mantendo o mesmo participante e config
     const config = this.obterConfig()
     if (!config || !this.wheelVencedor) return
 
