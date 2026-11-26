@@ -2,12 +2,15 @@ import { NivelPicancia } from "./types.js"
 
 export type TipoPergunta = "verdade" | "consequencia"
 
+/** Estrutura compartilhada entre o banco fixo e as perguntas do jogador. */
+export type BancoPerguntas = Record<NivelPicancia, Record<TipoPergunta, string[]>>
+
 /**
  * Bancos de perguntas de backup (usados quando a API falha, nao ha chave,
   * ou falha do proxy da IA). Toda pergunta do banco termina com
  * o sufixo "/bkp" para identificar a origem.
  */
-export const BANCOS_PERGUNTAS: Record<NivelPicancia, Record<TipoPergunta, string[]>> = {
+export const BANCOS_PERGUNTAS: BancoPerguntas = {
   [NivelPicancia.SFW]: {
     verdade: [
       "Qual seu maior medo irracional? /bkp",

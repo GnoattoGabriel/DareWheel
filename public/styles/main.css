@@ -100,7 +100,8 @@ header p {
 }
 
 .toggle-group h2,
-.participantes h2 {
+.participantes h2,
+.acao-offline h2 {
   font-family: var(--fonte-display);
   font-size: 1rem;
   font-weight: 600;
@@ -236,7 +237,8 @@ header p {
   font-size: 1.3rem;
 }
 
-.remover-participante {
+.remover-participante,
+.remover-custom {
   width: 32px;
   height: 32px;
   display: flex;
@@ -253,7 +255,8 @@ header p {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.remover-participante:hover {
+.remover-participante:hover,
+.remover-custom:hover {
   background: rgba(255, 92, 92, 0.25);
   color: #ffb4b4;
 }
@@ -270,6 +273,84 @@ header p {
     font-size: max(12px, 0.85rem);
     padding: 0.4rem 0.8rem;
   }
+}
+
+/* Perguntas adicionadas pelo jogador (bloco offline) */
+.offline-acao {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.custom-dica {
+  font-size: max(12px, 0.875rem);
+  color: var(--texto-suave);
+  text-align: center;
+}
+
+.custom-botoes {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 0.75rem 0;
+}
+
+.btn-add-custom {
+  padding: 0.55rem 1rem;
+  font-size: 0.85rem;
+  font-family: var(--fonte-display);
+  font-weight: 600;
+  color: var(--texto);
+  background: rgba(44, 122, 123, 0.28);
+  border: 1px solid rgba(142, 224, 226, 0.5);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.12s ease;
+}
+
+.btn-add-custom:hover {
+  background: rgba(44, 122, 123, 0.5);
+}
+
+.btn-add-custom:active {
+  transform: scale(0.96);
+}
+
+.custom-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 220px;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.custom-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: max(12px, 0.85rem);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+}
+
+.custom-tipo {
+  flex: 0 0 auto;
+  padding: 0.15rem 0.5rem;
+  font-size: max(11px, 0.72rem);
+  font-weight: 600;
+  color: var(--acento-claro);
+  background: rgba(44, 122, 123, 0.28);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.custom-texto {
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
 }
 
 /* Botões */
@@ -293,6 +374,7 @@ header p {
 }
 
 .btn-iniciar {
+  display: block; /* evita que dois botoes inline fiquem lado a lado */
   background: linear-gradient(180deg, #35999a, #2c7a7b);
   color: #fff;
   width: 100%;
@@ -309,6 +391,47 @@ header p {
 
 .btn-iniciar:not(:disabled):hover {
   background: #246061;
+}
+
+/* Botao offline: dentro do bloco de perguntas, com cor distinta */
+.btn-offline {
+  display: block;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-family: var(--fonte-display);
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(180deg, #7a4bb5, #61359b);
+  border: none;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 220px;
+  margin: 0 auto; /* separado do botão Iniciar por outro bloco */
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  transition: background 0.2s ease, transform 0.12s ease;
+}
+
+.btn-offline:not(:disabled):hover {
+  background: #4d2a7d;
+}
+
+.btn-offline:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+.btn-offline:disabled {
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.55);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.offline-descricao {
+  max-width: 320px;
+  margin: 0.5rem auto 0;
+  font-size: max(12px, 0.8125rem);
+  color: var(--texto-suave);
 }
 
 /* Reroll Button */
@@ -780,6 +903,7 @@ header p {
   line-height: 1.45;
   font-size: 1.3rem;
   color: var(--texto);
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 640px) {
@@ -819,6 +943,12 @@ header p {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid var(--borda-suave);
   border-radius: 999px;
+}
+
+.origem-custom {
+  color: #d9c2ff;
+  background: rgba(97, 53, 155, 0.35);
+  border-color: rgba(183, 148, 244, 0.5);
 }
 
 /* Mobile menu improvements */
