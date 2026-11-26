@@ -1341,13 +1341,13 @@ input:focus-visible {
 
 @keyframes meteoro {
   0% {
-    transform: translate3d(-12vw, -8vh, 0) rotate(-34deg) scaleX(0.6);
+    transform: rotate(28deg) translateX(-15vw);
     opacity: 0;
   }
   8% { opacity: 1; }
   55% { opacity: 1; }
   72%, 100% {
-    transform: translate3d(120vw, 62vh, 0) rotate(-34deg) scaleX(1);
+    transform: rotate(28deg) translateX(115vw);
     opacity: 0;
   }
 }
