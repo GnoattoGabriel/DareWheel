@@ -1421,7 +1421,7 @@ input:focus-visible {
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 22%, transparent 44%),
     radial-gradient(120% 90% at 0% 0%, rgba(93, 242, 255, 0.14), transparent 58%),
-    linear-gradient(160deg, rgba(30, 21, 72, 0.84), rgba(10, 7, 28, 0.9));
+    linear-gradient(160deg, rgba(30, 21, 72, 0.68), rgba(10, 7, 28, 0.75));
   border: 1px solid rgba(198, 236, 255, 0.45);
   box-shadow:
     0 14px 40px rgba(0, 0, 0, 0.5),
