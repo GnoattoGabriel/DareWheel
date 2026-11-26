@@ -369,6 +369,7 @@ header p {
 }
 
 .btn-iniciar {
+  display: block; /* evita que dois botoes inline fiquem lado a lado */
   background: linear-gradient(180deg, #35999a, #2c7a7b);
   color: #fff;
   width: 100%;
@@ -389,6 +390,7 @@ header p {
 
 /* Botao offline: abaixo do iniciar, com pouco espaco e cor distinta */
 .btn-offline {
+  display: block;
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
   font-family: var(--fonte-display);
