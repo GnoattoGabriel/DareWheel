@@ -83,7 +83,6 @@ header p {
 /* Cards das secoes do menu */
 .configuracoes .toggle-group,
 .participantes,
-.perguntas-custom,
 .acao {
   background: var(--superficie);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -102,7 +101,7 @@ header p {
 
 .toggle-group h2,
 .participantes h2,
-.perguntas-custom h2 {
+.acao-offline h2 {
   font-family: var(--fonte-display);
   font-size: 1rem;
   font-weight: 600;
@@ -276,7 +275,13 @@ header p {
   }
 }
 
-/* Perguntas adicionadas pelo jogador (modo offline) */
+/* Perguntas adicionadas pelo jogador (bloco offline) */
+.offline-acao {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
 .custom-dica {
   font-size: max(12px, 0.875rem);
   color: var(--texto-suave);
@@ -388,7 +393,7 @@ header p {
   background: #246061;
 }
 
-/* Botao offline: abaixo do iniciar, com pouco espaco e cor distinta */
+/* Botao offline: dentro do bloco de perguntas, com cor distinta */
 .btn-offline {
   display: block;
   padding: 0.75rem 1.5rem;
@@ -401,7 +406,7 @@ header p {
   border-radius: 10px;
   width: 100%;
   max-width: 220px;
-  margin: 0.75rem auto 0; /* pequeno espaço entre Iniciar Jogo e Jogar offline */
+  margin: 0 auto; /* separado do botão Iniciar por outro bloco */
   cursor: pointer;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
   transition: background 0.2s ease, transform 0.12s ease;

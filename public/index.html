@@ -73,8 +73,15 @@
         <p class="picker-dica">escolha um emoji para adicionar um jogador</p>
       </section>
 
-      <!-- Perguntas do jogador (usadas no modo offline) -->
-      <section class="perguntas-custom">
+      <!-- Bloco online: iniciar jogo -->
+      <section class="acao acao-iniciar">
+        <button id="btn-iniciar" class="btn-iniciar" disabled>
+          Iniciar Jogo
+        </button>
+      </section>
+
+      <!-- Bloco offline: adicionar perguntas + jogar offline -->
+      <section class="acao acao-offline">
         <h2>Minhas perguntas</h2>
         <p class="custom-dica">
           Adicione perguntas para o nível <span id="custom-nivel">SFW</span> selecionado acima. Elas entram no modo offline.
@@ -86,19 +93,14 @@
         <div id="custom-lista" class="custom-lista">
           <!-- Será populado pelo JavaScript -->
         </div>
-      </section>
-
-      <!-- Botões de início -->
-      <section class="acao">
-        <button id="btn-iniciar" class="btn-iniciar" disabled>
-          Iniciar Jogo
-        </button>
-        <button id="btn-offline" class="btn-offline" aria-describedby="offline-descricao" disabled>
-          Jogar offline
-        </button>
-        <p id="offline-descricao" class="offline-descricao">
-          Usa só o banco de perguntas e as suas, sem internet e sem chamar a IA.
-        </p>
+        <div class="offline-acao">
+          <button id="btn-offline" class="btn-offline" aria-describedby="offline-descricao" disabled>
+            Jogar offline
+          </button>
+          <p id="offline-descricao" class="offline-descricao">
+            Usa só o banco de perguntas e as suas, sem internet e sem chamar a IA.
+          </p>
+        </div>
       </section>
     </div>
   </main>
